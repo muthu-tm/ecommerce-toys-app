@@ -1,0 +1,55 @@
+# dependencies
+node_modules/
+.pnpm-store/
+
+# build output
+dist/
+lib/
+.next/
+out/
+*.tsbuildinfo
+
+# turbo
+.turbo/
+
+# test output
+coverage/
+test-results/
+playwright-report/
+.vitest-reports/
+
+# environment — never commit secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# firebase
+.firebase/
+firebase-debug.log
+firestore-debug.log
+ui-debug.log
+database-debug.log
+pubsub-debug.log
+firestore-export/
+serviceAccount*.json
+!serviceAccount.example.json
+
+# generated white-label artefacts
+packages/store-config/generated/
+apps/*/src/generated/
+
+# editor / OS
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/*
+!.vscode/settings.json
+!.vscode/extensions.json
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*
+apps/*/public/brand/
+next-env.d.ts

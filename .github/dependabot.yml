@@ -1,0 +1,52 @@
+version: 2
+
+updates:
+  # Grouped weekly rather than a PR per package. A stream of single-dependency
+  # PRs gets rubber-stamped; one batched PR gets read.
+  - package-ecosystem: npm
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 5
+    versioning-strategy: increase
+    groups:
+      dev-tooling:
+        patterns:
+          - "@commitlint/*"
+          - "eslint*"
+          - "@typescript-eslint/*"
+          - "typescript-eslint"
+          - "prettier"
+          - "turbo"
+          - "vitest"
+          - "@vitest/*"
+          - "husky"
+          - "lint-staged"
+        update-types: [minor, patch]
+      firebase:
+        patterns:
+          - "firebase"
+          - "firebase-admin"
+          - "firebase-tools"
+          - "@firebase/*"
+        update-types: [minor, patch]
+    ignore:
+      # libphonenumber-js decides whether an existing customer's mobile number
+      # still normalises to the identifier they registered with (ADR-0006), so an
+      # upgrade is a data-migration question, not a routine bump. Reviewed by
+      # hand, deliberately.
+      - dependency-name: libphonenumber-js
+      # TypeScript majors change what typechecks across every package at once.
+      - dependency-name: typescript
+        update-types: [version-update:semver-major]
+
+  - package-ecosystem: github-actions
+    directory: /
+    schedule:
+      interval: weekly
+      day: monday
+    open-pull-requests-limit: 3
+    groups:
+      actions:
+        patterns: ["*"]

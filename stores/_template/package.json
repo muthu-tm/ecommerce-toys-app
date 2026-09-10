@@ -1,0 +1,21 @@
+{
+  "name": "@romp/store-template",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Store scaffold consumed by pnpm store:new",
+  "type": "module",
+  "exports": {
+    ".": "./store.config.ts",
+    "./seed.catalogue": "./seed.catalogue.ts"
+  },
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "clean": "rm -rf .turbo *.tsbuildinfo"
+  },
+  "devDependencies": {
+    "@romp/config": "workspace:*",
+    "@romp/store-config": "workspace:*",
+    "typescript": "^5.7.2"
+  }
+}

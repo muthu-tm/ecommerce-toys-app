@@ -1,0 +1,44 @@
+{
+  "name": "romp-platform",
+  "version": "0.1.0",
+  "private": true,
+  "description": "White-label toy-commerce platform — storefront, backoffice, and API",
+  "packageManager": "pnpm@9.15.9",
+  "engines": {
+    "node": ">=20.11.0"
+  },
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev",
+    "lint": "turbo run lint",
+    "lint:fix": "turbo run lint -- --fix",
+    "typecheck": "turbo run typecheck",
+    "test": "turbo run test",
+    "test:watch": "turbo run test:watch",
+    "test:coverage": "turbo run test:coverage",
+    "format": "prettier --write \"**/*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,css}\"",
+    "format:check": "prettier --check \"**/*.{ts,tsx,js,mjs,cjs,json,md,yml,yaml,css}\"",
+    "verify": "turbo run lint typecheck test",
+    "clean": "turbo run clean && rm -rf node_modules/.cache .turbo",
+    "store:tokens": "pnpm --filter @romp/store-config tokens",
+    "store:new": "pnpm --filter @romp/store-config store:new",
+    "seed": "pnpm --filter @romp/data seed",
+    "seed:emulator": "firebase emulators:exec --project demo-romp --only firestore \"pnpm --filter @romp/data seed --project demo-romp\"",
+    "seed:admins": "pnpm --filter @romp/api seed:admins",
+    "emulators": "firebase emulators:start --project demo-romp",
+    "emulators:dev": "firebase emulators:start --project dev --import .firebase/seed --export-on-exit .firebase/seed",
+    "test:rules": "pnpm --filter @romp/infra test",
+    "firebase": "firebase",
+    "prepare": "husky"
+  },
+  "devDependencies": {
+    "@commitlint/cli": "^19.6.0",
+    "@commitlint/config-conventional": "^19.6.0",
+    "firebase-tools": "^15.29.0",
+    "husky": "^9.1.7",
+    "lint-staged": "^15.2.11",
+    "prettier": "^3.4.2",
+    "turbo": "^2.3.3",
+    "typescript": "^5.7.2"
+  }
+}

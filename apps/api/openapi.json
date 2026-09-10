@@ -1,0 +1,2857 @@
+{
+  "openapi": "3.1.0",
+  "info": {
+    "title": "ROMP API",
+    "version": "1.0.0",
+    "description": "The ROMP commerce API. Every write in the system passes through here. Generated from Zod contracts."
+  },
+  "paths": {
+    "/v1/health": {
+      "get": {
+        "summary": "Liveness",
+        "security": [],
+        "responses": {
+          "200": {
+            "description": "The service is up; returns version and commit."
+          }
+        }
+      }
+    },
+    "/v1/auth/register": {
+      "post": {
+        "summary": "Register with email or mobile + password",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Account created.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`IDENTIFIER_TAKEN` (Identifier already registered) — https://romp.dev/errors/identifier-taken",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`WEAK_PASSWORD` (Password too weak) — https://romp.dev/errors/weak-password",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/check-identifier": {
+      "post": {
+        "summary": "Check whether an identifier is available",
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CheckIdentifierRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Availability.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CheckIdentifierResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/auth/password-change": {
+      "post": {
+        "summary": "Change password (revokes other sessions)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/PasswordChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Password changed; other sessions revoked."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "422": {
+            "description": "`WEAK_PASSWORD` (Password too weak) — https://romp.dev/errors/weak-password",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/me": {
+      "get": {
+        "summary": "The signed-in customer’s profile",
+        "responses": {
+          "200": {
+            "description": "Profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Update the signed-in customer’s profile",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/MeUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Updated profile.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/MeResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/me": {
+      "get": {
+        "summary": "Admin profile and claim confirmation",
+        "responses": {
+          "200": {
+            "description": "The operator uid and role."
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/users/{uid}/password-reset": {
+      "post": {
+        "summary": "Mint a single-use password-reset link (WhatsApp-assisted)",
+        "parameters": [
+          {
+            "name": "uid",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "A single-use, short-TTL reset link for the admin to relay."
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/products": {
+      "post": {
+        "summary": "Create a draft product",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateProductRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created product id and slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateProductResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/products/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Edit product content",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateProductRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Product updated; storefront tags revalidated."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/products/{id}/status": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Publish, unpublish or archive a product",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ProductStatusChangeRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Status changed."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`INVALID_STATE_TRANSITION` (Invalid state transition) — https://romp.dev/errors/invalid-state-transition",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/products/{id}/variants": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Add a variant, refreshing the product summary",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateVariantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created variant id.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateVariantResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/products/{id}/variants/{variantId}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "variantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Edit a variant, refreshing the product summary",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateVariantRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Variant updated."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/products/{id}/variants/{variantId}/inventory": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        },
+        {
+          "name": "variantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Adjust a variant’s stock at one warehouse",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/InventoryAdjustRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The stock balance after the adjustment.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/InventoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`INVALID_STATE_TRANSITION` (Invalid state transition) — https://romp.dev/errors/invalid-state-transition",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/products/{id}/media": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "post": {
+        "summary": "Register a media upload slot",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/RegisterMediaRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The Storage object path to upload to.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/RegisterMediaResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/categories": {
+      "post": {
+        "summary": "Create a category",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/CreateCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created category id and slug.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CreateCategoryResponse"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`IDENTIFIER_TAKEN` (Identifier already registered) — https://romp.dev/errors/identifier-taken; `INVALID_STATE_TRANSITION` (Invalid state transition) — https://romp.dev/errors/invalid-state-transition",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/categories/reorder": {
+      "post": {
+        "summary": "Reorder categories",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/ReorderCategoriesRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Categories reordered."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/admin/categories/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Edit a category",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCategoryRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Category updated."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`INVALID_STATE_TRANSITION` (Invalid state transition) — https://romp.dev/errors/invalid-state-transition",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a category (refused while products or children depend on it)",
+        "responses": {
+          "204": {
+            "description": "Category deleted."
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "403": {
+            "description": "`FORBIDDEN` (Not permitted) — https://romp.dev/errors/forbidden",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`INVALID_STATE_TRANSITION` (Invalid state transition) — https://romp.dev/errors/invalid-state-transition",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart": {
+      "get": {
+        "summary": "Read the cart (guest by cookie or signed-in by token)",
+        "responses": {
+          "200": {
+            "description": "The cart as rendered.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartView"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "patch": {
+        "summary": "Toggle gift wrap",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/UpdateCartRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated cart.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/items": {
+      "post": {
+        "summary": "Add a variant to the cart, or set its quantity",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddCartItemRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "The updated cart.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "409": {
+            "description": "`INVALID_STATE_TRANSITION` (Invalid state transition) — https://romp.dev/errors/invalid-state-transition",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/items/{variantId}": {
+      "parameters": [
+        {
+          "name": "variantId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "delete": {
+        "summary": "Remove a line from the cart",
+        "responses": {
+          "200": {
+            "description": "The updated cart.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartView"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/cart/merge": {
+      "post": {
+        "summary": "Merge the guest cart into the signed-in account",
+        "responses": {
+          "200": {
+            "description": "The merged cart.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/CartView"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Money": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Money",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "BasisPoints": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/BasisPoints",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 10000
+      },
+      "Quantity": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Quantity",
+        "type": "integer",
+        "minimum": 0,
+        "maximum": 9007199254740991
+      },
+      "Cursor": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Cursor",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 2048
+      },
+      "Email": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Email",
+        "type": "string",
+        "maxLength": 254,
+        "format": "email",
+        "pattern": "^(?!\\.)(?!.*\\.\\.)([A-Za-z0-9_'+\\-\\.]*)[A-Za-z0-9_+-]@([A-Za-z0-9][A-Za-z0-9\\-]*\\.)+[A-Za-z]{2,}$"
+      },
+      "E164Phone": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/E164Phone",
+        "type": "string",
+        "pattern": "^\\+[1-9]\\d{7,14}$"
+      },
+      "Sku": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Sku",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 64,
+        "pattern": "^[A-Z0-9][A-Z0-9._-]*$"
+      },
+      "Slug": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Slug",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 120,
+        "pattern": "^[a-z0-9]+(?:-[a-z0-9]+)*$"
+      },
+      "Pincode": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Pincode",
+        "type": "string",
+        "pattern": "^[1-9]\\d{5}$"
+      },
+      "AgeBand": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/AgeBand",
+        "type": "string",
+        "minLength": 1,
+        "maxLength": 32,
+        "pattern": "^[\\w+-]+$"
+      },
+      "HumanOrderId": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/HumanOrderId",
+        "type": "string",
+        "pattern": "^[A-Z]{2,8}-\\d{4,12}$"
+      },
+      "Utr": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Utr",
+        "type": "string",
+        "minLength": 6,
+        "maxLength": 64,
+        "pattern": "^[A-Z0-9]+$"
+      },
+      "UpiVpa": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/UpiVpa",
+        "type": "string",
+        "pattern": "^[\\w.-]{2,64}@[A-Za-z]{2,64}$"
+      },
+      "OrderStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/OrderStatus",
+        "type": "string",
+        "enum": [
+          "awaiting_payment",
+          "pending_verification",
+          "paid",
+          "payment_rejected",
+          "expired",
+          "cancelled",
+          "refunded"
+        ]
+      },
+      "FulfilmentStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/FulfilmentStatus",
+        "type": "string",
+        "enum": [
+          "unfulfilled",
+          "packed",
+          "shipped",
+          "delivered",
+          "on_hold",
+          "cancelled"
+        ]
+      },
+      "PaymentMethod": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/PaymentMethod",
+        "type": "string",
+        "enum": [
+          "upi"
+        ]
+      },
+      "DeliverySpeed": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/DeliverySpeed",
+        "type": "string",
+        "enum": [
+          "standard",
+          "express"
+        ]
+      },
+      "ProductStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ProductStatus",
+        "type": "string",
+        "enum": [
+          "draft",
+          "active",
+          "archived"
+        ]
+      },
+      "ReservationStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReservationStatus",
+        "type": "string",
+        "enum": [
+          "active",
+          "committed",
+          "released"
+        ]
+      },
+      "ReviewStatus": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReviewStatus",
+        "type": "string",
+        "enum": [
+          "pending",
+          "published",
+          "rejected"
+        ]
+      },
+      "Rating": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Rating",
+        "type": "integer",
+        "minimum": 1,
+        "maximum": 5
+      },
+      "RefundMode": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RefundMode",
+        "type": "string",
+        "enum": [
+          "full",
+          "partial"
+        ]
+      },
+      "RefundReason": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RefundReason",
+        "type": "string",
+        "enum": [
+          "customer_cancelled",
+          "out_of_stock",
+          "damaged",
+          "wrong_item",
+          "delivery_failed",
+          "overpayment",
+          "adjustment",
+          "duplicate_refund",
+          "other"
+        ]
+      },
+      "InventoryLedgerReason": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/InventoryLedgerReason",
+        "type": "string",
+        "enum": [
+          "adjustment",
+          "order_committed",
+          "order_cancelled",
+          "refund_restock",
+          "seed",
+          "reconciliation"
+        ]
+      },
+      "EventType": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/EventType",
+        "type": "string",
+        "enum": [
+          "order.created",
+          "order.payment_submitted",
+          "order.payment_verified",
+          "order.payment_rejected",
+          "order.expired",
+          "order.packed",
+          "order.shipped",
+          "order.delivered",
+          "order.cancelled",
+          "refund.issued",
+          "review.submitted",
+          "review.published",
+          "review.rejected",
+          "inventory.low_stock",
+          "inventory.out_of_stock",
+          "sweeper.anomaly"
+        ]
+      },
+      "NotificationType": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/NotificationType",
+        "type": "string",
+        "enum": [
+          "order_placed",
+          "new_order",
+          "payment_under_review",
+          "payment_proof_submitted",
+          "payment_verified",
+          "payment_rejected",
+          "order_expired",
+          "order_packed",
+          "order_shipped",
+          "order_delivered",
+          "order_cancelled",
+          "refund_issued",
+          "review_pending",
+          "review_published",
+          "low_stock",
+          "out_of_stock",
+          "sweeper_anomaly"
+        ]
+      },
+      "Audience": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/Audience",
+        "type": "string",
+        "enum": [
+          "user",
+          "admin"
+        ]
+      },
+      "ErrorCode": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ErrorCode",
+        "type": "string",
+        "enum": [
+          "VALIDATION_FAILED",
+          "FILTER_LIMIT_EXCEEDED",
+          "UNSUPPORTED_QUERY",
+          "UNAUTHENTICATED",
+          "FORBIDDEN",
+          "NOT_FOUND",
+          "IDENTIFIER_TAKEN",
+          "INSUFFICIENT_STOCK",
+          "RESERVATION_EXPIRED",
+          "DUPLICATE_PAYMENT_REFERENCE",
+          "INVALID_STATE_TRANSITION",
+          "VARIANT_IN_USE",
+          "REFUND_EXCEEDS_REFUNDABLE",
+          "WEAK_PASSWORD",
+          "RATE_LIMITED",
+          "INTERNAL"
+        ]
+      },
+      "ValidationIssue": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ValidationIssue",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          },
+          "message": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path",
+          "message"
+        ],
+        "additionalProperties": false
+      },
+      "ProblemDetails": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ProblemDetails",
+        "type": "object",
+        "properties": {
+          "type": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          },
+          "status": {
+            "type": "integer",
+            "minimum": 400,
+            "maximum": 599
+          },
+          "code": {
+            "$ref": "#/components/schemas/ErrorCode"
+          },
+          "detail": {
+            "type": "string"
+          },
+          "requestId": {
+            "type": "string"
+          },
+          "errors": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ValidationIssue"
+            }
+          },
+          "retryAfterSeconds": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "type",
+          "title",
+          "status",
+          "code"
+        ],
+        "additionalProperties": false
+      },
+      "RegisterRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RegisterRequest",
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254
+          },
+          "password": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "required": [
+          "identifier",
+          "password",
+          "displayName"
+        ],
+        "additionalProperties": false
+      },
+      "RegisterResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RegisterResponse",
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "loginEmail": {
+            "type": "string"
+          },
+          "primaryIdentifierType": {
+            "type": "string",
+            "enum": [
+              "email",
+              "phone"
+            ]
+          }
+        },
+        "required": [
+          "uid",
+          "loginEmail",
+          "primaryIdentifierType"
+        ],
+        "additionalProperties": false
+      },
+      "CheckIdentifierRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CheckIdentifierRequest",
+        "type": "object",
+        "properties": {
+          "identifier": {
+            "type": "string",
+            "minLength": 3,
+            "maxLength": 254
+          }
+        },
+        "required": [
+          "identifier"
+        ],
+        "additionalProperties": false
+      },
+      "CheckIdentifierResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CheckIdentifierResponse",
+        "type": "object",
+        "properties": {
+          "available": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "available"
+        ],
+        "additionalProperties": false
+      },
+      "PasswordChangeRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/PasswordChangeRequest",
+        "type": "object",
+        "properties": {
+          "currentPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          },
+          "newPassword": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 256
+          }
+        },
+        "required": [
+          "currentPassword",
+          "newPassword"
+        ],
+        "additionalProperties": false
+      },
+      "MeUpdateRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/MeUpdateRequest",
+        "type": "object",
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          }
+        },
+        "additionalProperties": false
+      },
+      "MeResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/MeResponse",
+        "type": "object",
+        "properties": {
+          "uid": {
+            "type": "string"
+          },
+          "displayName": {
+            "type": "string"
+          },
+          "primaryIdentifierType": {
+            "type": "string",
+            "enum": [
+              "email",
+              "phone"
+            ]
+          },
+          "emailPresent": {
+            "type": "boolean"
+          },
+          "phonePresent": {
+            "type": "boolean"
+          },
+          "orderCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "uid",
+          "displayName",
+          "primaryIdentifierType",
+          "emailPresent",
+          "phonePresent",
+          "orderCount"
+        ],
+        "additionalProperties": false
+      },
+      "CreateProductRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CreateProductRequest",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "slug": {
+            "$ref": "#/components/schemas/Slug"
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "categoryId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "categorySlug": {
+            "$ref": "#/components/schemas/Slug"
+          },
+          "ageBand": {
+            "$ref": "#/components/schemas/AgeBand"
+          },
+          "badge": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "skills": {
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "boxItems": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          "safety": {
+            "type": "object",
+            "properties": {
+              "bisCertified": {
+                "type": "boolean"
+              },
+              "bisCertNo": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bisCertExpiry": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bpaFree": {
+                "type": "boolean"
+              },
+              "hasSmallParts": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "bisCertified",
+              "bisCertNo",
+              "bisCertExpiry",
+              "bpaFree",
+              "hasSmallParts"
+            ],
+            "additionalProperties": false
+          },
+          "seo": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 70
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "index": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "index"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "brand",
+          "categoryId",
+          "categorySlug",
+          "ageBand",
+          "badge",
+          "skills",
+          "boxItems",
+          "safety",
+          "seo"
+        ],
+        "additionalProperties": false
+      },
+      "CreateProductResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CreateProductResponse",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "$ref": "#/components/schemas/Slug"
+          }
+        },
+        "required": [
+          "id",
+          "slug"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateProductRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/UpdateProductRequest",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "description": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 5000
+          },
+          "brand": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "categoryId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "categorySlug": {
+            "$ref": "#/components/schemas/Slug"
+          },
+          "ageBand": {
+            "$ref": "#/components/schemas/AgeBand"
+          },
+          "badge": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 40
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "skills": {
+            "maxItems": 12,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 60
+            }
+          },
+          "boxItems": {
+            "maxItems": 20,
+            "type": "array",
+            "items": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 120
+            }
+          },
+          "safety": {
+            "type": "object",
+            "properties": {
+              "bisCertified": {
+                "type": "boolean"
+              },
+              "bisCertNo": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 64
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bisCertExpiry": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "format": "date",
+                    "pattern": "^(?:(?:\\d\\d[2468][048]|\\d\\d[13579][26]|\\d\\d0[48]|[02468][048]00|[13579][26]00)-02-29|\\d{4}-(?:(?:0[13578]|1[02])-(?:0[1-9]|[12]\\d|3[01])|(?:0[469]|11)-(?:0[1-9]|[12]\\d|30)|(?:02)-(?:0[1-9]|1\\d|2[0-8])))$"
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "bpaFree": {
+                "type": "boolean"
+              },
+              "hasSmallParts": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "bisCertified",
+              "bisCertNo",
+              "bisCertExpiry",
+              "bpaFree",
+              "hasSmallParts"
+            ],
+            "additionalProperties": false
+          },
+          "seo": {
+            "type": "object",
+            "properties": {
+              "title": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 70
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "description": {
+                "anyOf": [
+                  {
+                    "type": "string",
+                    "minLength": 1,
+                    "maxLength": 200
+                  },
+                  {
+                    "type": "null"
+                  }
+                ]
+              },
+              "index": {
+                "type": "boolean"
+              }
+            },
+            "required": [
+              "title",
+              "description",
+              "index"
+            ],
+            "additionalProperties": false
+          }
+        },
+        "required": [
+          "name",
+          "description",
+          "brand",
+          "categoryId",
+          "categorySlug",
+          "ageBand",
+          "badge",
+          "skills",
+          "boxItems",
+          "safety",
+          "seo"
+        ],
+        "additionalProperties": false
+      },
+      "ProductStatusChangeRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ProductStatusChangeRequest",
+        "type": "object",
+        "properties": {
+          "status": {
+            "$ref": "#/components/schemas/ProductStatus"
+          }
+        },
+        "required": [
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "CreateVariantRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/UpdateVariantRequest",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "sku": {
+            "$ref": "#/components/schemas/Sku"
+          },
+          "priceMinor": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "mrpMinor": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "options": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "weightGrams": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "name",
+          "sku",
+          "priceMinor",
+          "mrpMinor",
+          "options",
+          "active",
+          "weightGrams"
+        ],
+        "additionalProperties": false
+      },
+      "CreateVariantResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CreateVariantResponse",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateVariantRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/UpdateVariantRequest",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "sku": {
+            "$ref": "#/components/schemas/Sku"
+          },
+          "priceMinor": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "mrpMinor": {
+            "$ref": "#/components/schemas/Money"
+          },
+          "options": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 40
+            },
+            "additionalProperties": {
+              "type": "string",
+              "minLength": 1,
+              "maxLength": 80
+            }
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "weightGrams": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 9007199254740991
+          }
+        },
+        "required": [
+          "name",
+          "sku",
+          "priceMinor",
+          "mrpMinor",
+          "options",
+          "active",
+          "weightGrams"
+        ],
+        "additionalProperties": false
+      },
+      "RegisterMediaRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RegisterMediaRequest",
+        "type": "object",
+        "properties": {
+          "alt": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 300
+          },
+          "contentType": {
+            "type": "string",
+            "enum": [
+              "image/jpeg",
+              "image/png",
+              "image/webp",
+              "image/avif"
+            ]
+          }
+        },
+        "required": [
+          "alt",
+          "contentType"
+        ],
+        "additionalProperties": false
+      },
+      "RegisterMediaResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/RegisterMediaResponse",
+        "type": "object",
+        "properties": {
+          "path": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "path"
+        ],
+        "additionalProperties": false
+      },
+      "InventoryAdjustRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/InventoryAdjustRequest",
+        "type": "object",
+        "properties": {
+          "warehouseId": {
+            "type": "string",
+            "pattern": "^[a-z0-9][a-z0-9-]*$"
+          },
+          "delta": {
+            "type": "integer",
+            "minimum": -9007199254740991,
+            "maximum": 9007199254740991
+          },
+          "reason": {
+            "type": "string",
+            "enum": [
+              "adjustment",
+              "reconciliation"
+            ]
+          },
+          "note": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          }
+        },
+        "required": [
+          "warehouseId",
+          "delta",
+          "reason",
+          "note"
+        ],
+        "additionalProperties": false
+      },
+      "InventoryResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/InventoryResponse",
+        "type": "object",
+        "properties": {
+          "variantId": {
+            "type": "string"
+          },
+          "onHandTotal": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "reserved": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "stock": {
+            "type": "object",
+            "propertyNames": {
+              "type": "string",
+              "pattern": "^[a-z0-9][a-z0-9-]*$"
+            },
+            "additionalProperties": {
+              "type": "integer",
+              "minimum": 0,
+              "maximum": 9007199254740991
+            }
+          }
+        },
+        "required": [
+          "variantId",
+          "onHandTotal",
+          "reserved",
+          "stock"
+        ],
+        "additionalProperties": false
+      },
+      "CreateCategoryRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CreateCategoryRequest",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "slug": {
+            "$ref": "#/components/schemas/Slug"
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Slug"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "showInNav": {
+            "type": "boolean"
+          },
+          "showInFilters": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "name",
+          "parentId",
+          "active",
+          "showInNav",
+          "showInFilters",
+          "sortOrder"
+        ],
+        "additionalProperties": false
+      },
+      "CreateCategoryResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CreateCategoryResponse",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string"
+          },
+          "slug": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "id",
+          "slug"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateCategoryRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/UpdateCategoryRequest",
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 80
+          },
+          "parentId": {
+            "anyOf": [
+              {
+                "$ref": "#/components/schemas/Slug"
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "active": {
+            "type": "boolean"
+          },
+          "showInNav": {
+            "type": "boolean"
+          },
+          "showInFilters": {
+            "type": "boolean"
+          },
+          "sortOrder": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 1000
+          }
+        },
+        "required": [
+          "name",
+          "parentId",
+          "active",
+          "showInNav",
+          "showInFilters",
+          "sortOrder"
+        ],
+        "additionalProperties": false
+      },
+      "ReorderCategoriesRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReorderCategoriesRequest",
+        "type": "object",
+        "properties": {
+          "orders": {
+            "minItems": 1,
+            "maxItems": 200,
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "slug": {
+                  "$ref": "#/components/schemas/Slug"
+                },
+                "sortOrder": {
+                  "type": "integer",
+                  "minimum": 0,
+                  "maximum": 1000
+                }
+              },
+              "required": [
+                "slug",
+                "sortOrder"
+              ],
+              "additionalProperties": false
+            }
+          }
+        },
+        "required": [
+          "orders"
+        ],
+        "additionalProperties": false
+      },
+      "AddCartItemRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/AddCartItemRequest",
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "variantId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "qty": {
+            "type": "integer",
+            "exclusiveMinimum": 0,
+            "maximum": 1000
+          },
+          "mode": {
+            "type": "string",
+            "enum": [
+              "add",
+              "set"
+            ]
+          }
+        },
+        "required": [
+          "productId",
+          "variantId",
+          "qty",
+          "mode"
+        ],
+        "additionalProperties": false
+      },
+      "UpdateCartRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/UpdateCartRequest",
+        "type": "object",
+        "properties": {
+          "giftWrap": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "giftWrap"
+        ],
+        "additionalProperties": false
+      },
+      "CartView": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/CartView",
+        "type": "object",
+        "properties": {
+          "items": {
+            "type": "array",
+            "items": {
+              "type": "object",
+              "properties": {
+                "variantId": {
+                  "type": "string"
+                },
+                "productId": {
+                  "type": "string"
+                },
+                "sku": {
+                  "type": "string"
+                },
+                "qty": {
+                  "type": "integer",
+                  "exclusiveMinimum": 0,
+                  "maximum": 9007199254740991
+                },
+                "priceMinorSnapshot": {
+                  "$ref": "#/components/schemas/Money"
+                },
+                "nameSnapshot": {
+                  "type": "string"
+                },
+                "variantNameSnapshot": {
+                  "type": "string"
+                },
+                "imagePathSnapshot": {
+                  "type": [
+                    "string",
+                    "null"
+                  ]
+                },
+                "lineSubtotalMinor": {
+                  "$ref": "#/components/schemas/Money"
+                },
+                "inStock": {
+                  "type": "boolean"
+                }
+              },
+              "required": [
+                "variantId",
+                "productId",
+                "sku",
+                "qty",
+                "priceMinorSnapshot",
+                "nameSnapshot",
+                "variantNameSnapshot",
+                "imagePathSnapshot",
+                "lineSubtotalMinor",
+                "inStock"
+              ],
+              "additionalProperties": false
+            }
+          },
+          "giftWrap": {
+            "type": "boolean"
+          },
+          "itemCount": {
+            "type": "integer",
+            "minimum": 0,
+            "maximum": 9007199254740991
+          },
+          "subtotalMinor": {
+            "$ref": "#/components/schemas/Money"
+          }
+        },
+        "required": [
+          "items",
+          "giftWrap",
+          "itemCount",
+          "subtotalMinor"
+        ],
+        "additionalProperties": false
+      }
+    },
+    "securitySchemes": {
+      "firebaseIdToken": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT",
+        "description": "Firebase ID token. Admin routes additionally require a role custom claim and verify token revocation on every request."
+      }
+    }
+  }
+}

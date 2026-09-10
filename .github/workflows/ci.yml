@@ -1,0 +1,117 @@
+name: CI
+
+# The pull-request gate. Everything that must be true before code reaches main.
+#
+# main is also verified on push: a merge can produce a state neither parent had,
+# and the dev deploy that follows should not be the first thing to discover it.
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+
+jobs:
+  verify:
+    name: Lint, typecheck, test
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+        with:
+          # The @romp/infra suite runs against the Firestore, Auth and Storage
+          # emulators, and the Firestore emulator is a JVM process.
+          java: "true"
+
+      - name: Formatting
+        run: pnpm format:check
+
+      # --continue so one failing task does not mask the others. A run that
+      # reports only the first problem costs an extra round trip per problem.
+      - name: Verify
+        run: pnpm turbo run lint typecheck test --continue
+
+      # The OpenAPI spec is generated from the Zod contracts; this fails if the committed
+      # copy is stale, so a schema change cannot merge without the contract updating with it.
+      - name: OpenAPI spec is current
+        run: pnpm --filter @romp/api openapi:check
+
+      - name: Build
+        run: pnpm build
+
+      - name: Upload emulator debug logs
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: emulator-logs
+          path: |
+            firestore-debug.log
+            storage-debug.log
+            ui-debug.log
+            firebase-debug.log
+          if-no-files-found: ignore
+          retention-days: 7
+
+  audit:
+    name: Dependency audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+
+      # Separate job so a newly-published advisory against a transitive
+      # dependency does not block an unrelated PR's test signal — the failure is
+      # legible on its own.
+      - name: Audit
+        run: pnpm audit --audit-level high
+
+  stores:
+    name: Store configs
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        # The white-label contract from docs/WHITE_LABEL.md: creating a store needs zero
+        # changes under apps/ or packages/. Verified by generating and building each store
+        # with the same code — a component that only renders correctly for one of them
+        # fails here rather than in a second store's production build.
+        #
+        # `_template` is included deliberately: it is the scaffold `pnpm store:new` copies,
+        # and a scaffold that has rotted hands the next person a broken config.
+        store: [romp, _template]
+    steps:
+      - uses: actions/checkout@v6
+      - uses: ./.github/actions/setup
+
+      - name: Generate artefacts for ${{ matrix.store }}
+        run: pnpm store:tokens
+        env:
+          STORE_ID: ${{ matrix.store }}
+
+      - name: Build the storefront for ${{ matrix.store }}
+        run: pnpm --filter @romp/storefront build
+        env:
+          STORE_ID: ${{ matrix.store }}
+
+      # Plans the seed without writing anything. The store-config and @romp/data
+      # suites already validate both catalogues, so what this adds is the script
+      # itself — argument parsing, store resolution, and the refusal to guess a
+      # project. A seed script that only runs by hand is a seed script that breaks
+      # unnoticed and is discovered on the day a new store needs it.
+      - name: Plan the seed for ${{ matrix.store }}
+        run: pnpm seed --store ${{ matrix.store }} --project demo-ci --dry-run

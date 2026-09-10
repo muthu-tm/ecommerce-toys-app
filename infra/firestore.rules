@@ -1,0 +1,328 @@
+rules_version = '2';
+
+// ROMP — Firestore security rules
+//
+// Implements the read and write matrices in docs/SECURITY.md. Every row there has
+// an allow-case *and* a deny-case test in infra/tests/rules/. An untested rule is
+// an assumption.
+//
+// Three things govern everything below.
+//
+//   1. RULES ARE A FIREWALL, NOT A VALIDATOR. They enforce *who* and *shape*.
+//      Business invariants — stock, pricing, state transitions — live in Cloud
+//      Functions transactions, because rules cannot transactionally read another
+//      document and cannot see two documents change together.
+//
+//   2. THE ADMIN SDK BYPASSES THIS FILE ENTIRELY. Next.js server components and
+//      Cloud Functions are not protected by anything here; they must filter by the
+//      authenticated uid themselves. See ADR-0001 and SECURITY.md § 1.
+//
+//   3. THE CLIENT WRITE SURFACE IS TWO FIELDS. `notifications.readAt` for a
+//      customer and `notifications.readBy[own uid]` for a staff member. Everything
+//      else — carts, addresses, wishlists, orders, reviews — is written through the
+//      API, so availability checks, price refreshes and quantity ceilings cannot be
+//      bypassed. A client-written cart would let the browser choose the price.
+//
+// Reads are opened deliberately, collection by collection, because the client SDK
+// is used for realtime reads (the notification bell) and for public catalogue
+// reads. Nothing is opened "for convenience".
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // ---------------------------------------------------------------- helpers
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function uid() {
+      return request.auth.uid;
+    }
+
+    // Roles are Firebase Auth CUSTOM CLAIMS, set only by the seeding script or an
+    // existing owner. They are deliberately NOT read from a Firestore document: a
+    // role stored in a document a client can write is a role a client can grant
+    // itself, and a role stored in a document a client can *read* still costs a
+    // document read on every single rule evaluation.
+    function role() {
+      return isSignedIn() ? request.auth.token.get('role', '') : '';
+    }
+
+    function isStaff() {
+      return role() == 'staff' || role() == 'owner';
+    }
+
+    function isOwner() {
+      return role() == 'owner';
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && uid() == userId;
+    }
+
+    // Which fields changed in an update. Used to hold a client write to exactly the
+    // fields it is allowed to touch, rather than trusting it to send only those.
+    function changedKeys() {
+      return request.resource.data.diff(resource.data).affectedKeys();
+    }
+
+    function onlyChanged(fields) {
+      return changedKeys().hasOnly(fields);
+    }
+
+    // ------------------------------------------------------- public catalogue
+
+    // Products and their variants are the storefront's read path. Only `active` is
+    // public: a draft is work in progress and an archived product is history, and
+    // both would otherwise be reachable by anyone who guessed a slug.
+    //
+    // The status string is `'active'`, matching `PUBLIC_PRODUCT_STATUS` in
+    // @romp/contracts. The rules test asserts that constant against this file, so a
+    // rename in one place fails rather than silently closing the catalogue.
+    match /products/{productId} {
+      allow read: if resource.data.status == 'active' || isStaff();
+      allow write: if false;
+
+      match /variants/{variantId} {
+        // A variant's visibility follows its product, so a draft product's variants
+        // are not readable even though the variant document itself has no status.
+        // `get()` costs a document read; it is the price of not denormalising the
+        // parent's status onto every variant, which would then need maintaining in
+        // the same transaction as every status change.
+        allow read: if isStaff() ||
+          get(/databases/$(database)/documents/products/$(productId)).data.status == 'active';
+        allow write: if false;
+      }
+    }
+
+    // Categories are navigation metadata. Nothing here is commercially sensitive —
+    // the names and the tree are on every page of the storefront — so they are
+    // readable in full rather than gated on a flag. Visibility is `showInNav` and
+    // `showInFilters`, which control *where* a category appears, not whether it may
+    // be read.
+    //
+    // SECURITY.md previously gated this on `isActive`, a field the data model does
+    // not have; see the reconciliation note in PROGRESS.md.
+    match /categories/{categoryId} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // Reviews: only published ones are public. An author additionally sees their
+    // own in any status, so they can tell the review was received rather than
+    // concluding the form is broken. Rejection reasons are never exposed — they are
+    // moderation judgements, and surfacing them invites argument.
+    match /reviews/{reviewId} {
+      allow read: if resource.data.status == 'published'
+        || isStaff()
+        || isSelf(resource.data.userId);
+      allow write: if false;
+    }
+
+    // ------------------------------------------------------------- settings
+
+    // `settings/checkout` is public because every value in it is something the
+    // customer is shown before they pay: the free-shipping threshold, the gift-wrap
+    // fee, the UPI VPA they are about to send money to. A VPA is a payee address,
+    // not a secret — it is printed on shop counters. No secret lives in Firestore.
+    //
+    // Any other settings document is staff-only. Opening the collection wholesale
+    // would mean the next settings document added is public by default, which is the
+    // wrong direction for a default to point.
+    match /settings/{settingsId} {
+      allow read: if settingsId == 'checkout' || isStaff();
+      allow write: if false;
+    }
+
+    // ------------------------------------------------------------ user-scoped
+
+    // A customer reads their own record; staff read any. Note that "not yours"
+    // yields the same outcome as "does not exist" — rules cannot distinguish them,
+    // and that is the behaviour we want anyway (SECURITY.md § 2: 404, not 403).
+    match /users/{userId} {
+      allow read: if isSelf(userId) || isStaff();
+      allow write: if false;
+
+      // Addresses and wishlist are client-READ and API-WRITTEN. Reading them
+      // directly is what lets the account pages render without an API round trip;
+      // writing them through the API is what enforces "exactly one default address"
+      // and the wishlist's product-existence check.
+      match /addresses/{addressId} {
+        allow read: if isSelf(userId) || isStaff();
+        allow write: if false;
+      }
+
+      match /wishlist/{productId} {
+        allow read: if isSelf(userId) || isStaff();
+        allow write: if false;
+      }
+    }
+
+    // Carts are keyed by uid for a signed-in customer and by an opaque cookie ID for
+    // an anonymous one. Anonymous auth is disabled, so an anonymous cart has no
+    // client that can read it — it is server-only by construction, and the rule
+    // checks the stored `userId` rather than the document ID so a customer cannot
+    // read a cart that merely happens to be named after them.
+    match /carts/{cartId} {
+      allow read: if isStaff() || (resource.data.ownerType == 'user' && isSelf(resource.data.userId));
+      allow write: if false;
+    }
+
+    match /orders/{orderId} {
+      allow read: if isSelf(resource.data.userId) || isStaff();
+      allow write: if false;
+
+      // The per-order audit trail. Customer-readable, which is why it carries no
+      // internal notes: staff commentary belongs on the store-wide `events` spine,
+      // which no client can read at all.
+      //
+      // This subcollection shares its name with that spine (`events`). They are
+      // different collections with different audiences, and confusing them would
+      // expose every actor identity in the store.
+      match /events/{eventId} {
+        allow read: if isStaff() ||
+          isSelf(get(/databases/$(database)/documents/orders/$(orderId)).data.userId);
+        allow write: if false;
+      }
+    }
+
+    // Refunds carry a denormalised `userId` precisely so this rule does not need a
+    // `get()` on the order. Without it, listing a customer's refunds would cost one
+    // extra read per document and would fail closed if the order were unreadable for
+    // an unrelated reason.
+    match /refunds/{refundId} {
+      allow read: if isSelf(resource.data.userId) || isStaff();
+      allow write: if false;
+    }
+
+    // ----------------------------------------------------------- notifications
+
+    // The only collection with a client write path, and the only one where rules
+    // assert field-level shape rather than just identity.
+    //
+    // Read state is modelled twice because the two audiences need different things.
+    // A customer notification has one recipient, so `readAt` is a single instant. A
+    // staff notification has many, so `readBy` is a map keyed by uid — a shared
+    // `readAt` would let the first admin to open the bell clear a new order for the
+    // whole team.
+    match /notifications/{notificationId} {
+      function isAddressee() {
+        return resource.data.audience == 'user' && isSelf(resource.data.userId);
+      }
+
+      function isStaffAudience() {
+        return resource.data.audience == 'admin' && isStaff();
+      }
+
+      allow read: if isAddressee() || isStaffAudience();
+
+      // A customer marks their own notification read.
+      //
+      //   - `readAt` and nothing else changes.
+      //   - the new value is `request.time`, so a client cannot backdate it.
+      //   - the existing value is null, so there is no un-reading and no
+      //     re-stamping. Idempotence here is a *denial*, not an overwrite: allowing
+      //     a rewrite would let a client churn a document indefinitely for free.
+      allow update: if isAddressee()
+        && onlyChanged(['readAt'])
+        && request.resource.data.readAt == request.time
+        && resource.data.readAt == null;
+
+      // A staff member marks a staff notification read for themselves only.
+      //
+      // The nested diff is the important part: it holds the write to the caller's
+      // own key, so one admin cannot mark a notification read on behalf of another —
+      // which would hide a new order from the person it was meant for.
+      allow update: if isStaffAudience()
+        && onlyChanged(['readBy'])
+        && request.resource.data.readBy.diff(resource.data.get('readBy', {})).affectedKeys().hasOnly([uid()])
+        && request.resource.data.readBy[uid()] == request.time
+        && !(uid() in resource.data.get('readBy', {}).keys());
+
+      // Deletes are denied everywhere for clients. A notification is a projection of
+      // the append-only event spine; removing one locally would be undone by the next
+      // dispatcher replay, and the TTL policy is what trims the feed.
+      allow create, delete: if false;
+    }
+
+    // -------------------------------------------------------------- staff-only
+
+    // Exact stock counts are commercially sensitive, and the storefront does not
+    // need them: it gets a derived `inStock` boolean on the variant summary. Opening
+    // `inventory` would hand a competitor the whole position, and would hand a
+    // scraper a live feed of what is selling.
+    match /inventory/{variantId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    match /warehouses/{warehouseId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    match /inventoryLedger/{entryId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    match /reservations/{reservationId} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    // Revenue is not a public figure, and the daily rollup is the dashboard's read
+    // path. `{document=**}` because the rollups are nested a level deeper
+    // (`analytics/rollups/daily/{date}`) and every level of that tree is staff-only.
+    match /analytics/{document=**} {
+      allow read: if isStaff();
+      allow write: if false;
+    }
+
+    // --------------------------------------------------------- server-only
+
+    // Genuinely no client access, for reasons specific to each.
+
+    // The event spine carries the actor identity behind every verification, refund
+    // and price change across the whole store. It is the audit log; a client reading
+    // it learns who did what to everyone.
+    match /events/{eventId} {
+      allow read, write: if false;
+    }
+
+    // `identityIndex` maps a login identifier to a uid. Readable, it answers "does
+    // this phone number have an account here" for every number in a list — and since
+    // a mobile number is a login credential (ADR-0006), that is the first half of a
+    // credential attack. Not staff-readable either: staff have no use for it that the
+    // API cannot serve, and a bulk enumeration oracle is worth denying to everyone.
+    match /identityIndex/{normalizedIdentifier} {
+      allow read, write: if false;
+    }
+
+    // Existence of a guard document means a UPI reference is claimed. Readable, it
+    // tells an attacker whether a reference they hold has already been spent.
+    match /paymentRefGuards/{normalizedUtr} {
+      allow read, write: if false;
+    }
+
+    // The order-number sequence. Readable, it discloses order volume.
+    match /counters/{counterId} {
+      allow read, write: if false;
+    }
+
+    // ------------------------------------------------------------- catch-all
+
+    // Deny anything not matched above.
+    //
+    // Firestore rules do not cascade — an unmatched path is already denied — so this
+    // block changes no behaviour. It is here because the *next* collection someone
+    // adds should be denied by an explicit statement they have to walk past, not by
+    // the absence of a rule they never thought about. The rules test asserts that
+    // every collection in @romp/data's `COLLECTIONS` has a real `match` block above
+    // this one, so a new collection cannot quietly rely on it.
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

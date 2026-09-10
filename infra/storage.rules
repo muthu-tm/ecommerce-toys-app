@@ -1,0 +1,110 @@
+rules_version = '2';
+
+// ROMP — Cloud Storage security rules
+//
+// Implements the storage table in docs/SECURITY.md § 3.
+//
+// THE DECLARED CONTENT TYPE IS A CLAIM, NOT A FACT. `request.resource.contentType`
+// is whatever the uploading client said, and `size` is the only thing here that
+// cannot be lied about. Both checks are a cheap first filter that keeps obvious
+// abuse off the bucket; the authoritative check is a Cloud Function on object
+// finalize that re-derives the type from the file's magic bytes and quarantines
+// mismatches. Without it, an "image" containing SVG with a script tag is a stored-XSS
+// vector on the admin origin — which is why SVG is not in the allowed list even
+// though it is a perfectly good image format.
+//
+// Payment proofs are additionally served with `Content-Disposition: attachment` and
+// `X-Content-Type-Options: nosniff`, so a file that survives both checks still does
+// not execute in an admin's browser.
+
+service firebase.storage {
+  match /b/{bucket}/o {
+
+    // ---------------------------------------------------------------- helpers
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function role() {
+      return isSignedIn() ? request.auth.token.get('role', '') : '';
+    }
+
+    function isStaff() {
+      return role() == 'staff' || role() == 'owner';
+    }
+
+    function isSelf(userId) {
+      return isSignedIn() && request.auth.uid == userId;
+    }
+
+    // 5 MB. Large enough for a phone photo of a payment screen and for product
+    // photography at the resolution the resize extension expects as a source; small
+    // enough that a single upload cannot be used to run up a storage bill.
+    function withinSizeLimit() {
+      return request.resource.size <= 5 * 1024 * 1024;
+    }
+
+    function isAllowedImage() {
+      // No SVG. It is a script container, and these files are rendered on the admin
+      // origin. No GIF either — nothing here needs animation, and every format
+      // allowed is a decoder attack surface.
+      return request.resource.contentType.matches('image/(jpeg|png|webp|avif)');
+    }
+
+    function isAllowedProof() {
+      // PDF as well as images, because some banks share a receipt as a PDF and
+      // refusing it would push the customer into screenshotting a PDF viewer.
+      return isAllowedImage() || request.resource.contentType == 'application/pdf';
+    }
+
+    // ------------------------------------------------------------ product media
+
+    // Public read: these are catalogue images on the storefront's critical path, and
+    // `next/image` fetches them without credentials. Staff-only write.
+    //
+    // Deletes are allowed for staff because replacing product photography is routine
+    // catalogue work, and an unremovable wrong image is a support problem. The
+    // product document keeps the audit trail of what changed.
+    match /products/{productId}/{fileName} {
+      allow read: if true;
+      allow write: if isStaff() && withinSizeLimit() && isAllowedImage();
+      allow delete: if isStaff();
+    }
+
+    // ----------------------------------------------------------- payment proofs
+
+    // Path carries the uid so ownership is a path comparison rather than a metadata
+    // lookup — metadata on an object the client uploaded is another client claim.
+    //
+    // The owner may write and read; staff may read to verify. Neither may delete:
+    // a payment proof is the evidence behind a verification decision, and a customer
+    // being able to remove it after the fact would break the reconciliation trail.
+    // Retention is 18 months, then a lifecycle rule removes it (SECURITY.md § 6).
+    match /payment-proofs/{orderId}/{userId}/{fileName} {
+      allow read: if isSelf(userId) || isStaff();
+      allow create, update: if isSelf(userId) && withinSizeLimit() && isAllowedProof();
+      allow delete: if false;
+    }
+
+    // ------------------------------------------------------------ store assets
+
+    // Logos, wordmarks and OG artwork. Public read, and no client write at all —
+    // these come from `stores/<id>/assets/` through the deploy pipeline, which runs
+    // with the runtime service account and bypasses these rules. A client-writable
+    // path here would let a compromised staff account replace the brand.
+    match /store-assets/{allPaths=**} {
+      allow read: if true;
+      allow write: if false;
+    }
+
+    // ------------------------------------------------------------- catch-all
+
+    // Storage rules do not cascade, so an unmatched path is already denied. Stated
+    // explicitly so the next path someone adds is denied by something they have to
+    // walk past rather than by an absence they never considered.
+    match /{allPaths=**} {
+      allow read, write: if false;
+    }
+  }
+}

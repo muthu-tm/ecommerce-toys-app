@@ -1,0 +1,8 @@
+{
+  "projects": {
+    "default": "romp-dev",
+    "dev": "romp-dev",
+    "prod": "romp-prod",
+    "demo": "demo-romp"
+  }
+}

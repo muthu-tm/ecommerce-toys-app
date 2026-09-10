@@ -1,0 +1,33 @@
+{
+  "name": "@romp/observability",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Structured logging with PII redaction, the AppError taxonomy, and RFC 7807 mapping",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf .turbo coverage *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@romp/contracts": "workspace:*",
+    "pino": "^10.3.1",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@romp/config": "workspace:*",
+    "@types/node": "^26.5.0",
+    "@vitest/coverage-v8": "^5.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.0"
+  }
+}

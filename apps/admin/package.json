@@ -1,0 +1,55 @@
+{
+  "name": "@romp/admin",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Backoffice — product catalogue, media, and store operations",
+  "type": "module",
+  "romp": {
+    "storeArtefacts": true
+  },
+  "scripts": {
+    "build": "next build",
+    "clean": "rm -rf .turbo .next coverage src/generated *.tsbuildinfo",
+    "dev": "next dev --port 3001",
+    "lint": "eslint .",
+    "prebuild": "pnpm run tokens",
+    "predev": "pnpm run tokens",
+    "start": "next start --port 3001",
+    "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
+    "test:watch": "vitest",
+    "tokens": "pnpm --filter @romp/store-config tokens",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@romp/contracts": "workspace:*",
+    "@romp/core": "workspace:*",
+    "@romp/data": "workspace:*",
+    "@romp/observability": "workspace:*",
+    "@romp/store-config": "workspace:*",
+    "@romp/ui": "workspace:*",
+    "firebase": "^12.19.0",
+    "firebase-admin": "^14.3.0",
+    "next": "^16.3.4",
+    "react": "^19.2.8",
+    "react-dom": "^19.2.8",
+    "server-only": "^0.0.1"
+  },
+  "devDependencies": {
+    "@romp/config": "workspace:*",
+    "@tailwindcss/postcss": "^4.3.3",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/react": "^16.3.3",
+    "@testing-library/user-event": "^14.6.7",
+    "@types/node": "^26.5.0",
+    "@types/react": "^19.2.18",
+    "@types/react-dom": "^19.2.7",
+    "@vitejs/plugin-react": "^6.1.1",
+    "@vitest/coverage-v8": "^5.0.0",
+    "axe-core": "^4.13.0",
+    "jsdom": "^30.0.1",
+    "tailwindcss": "^4.3.3",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.0"
+  }
+}

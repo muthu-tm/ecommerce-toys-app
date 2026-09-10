@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 260 64" role="img" aria-label="ROMP">
+  <!-- Wordmark for dark surfaces. Colours are literal here by design: this is the
+       brand asset itself, not application code. -->
+  <title>ROMP</title>
+  <g fill="#f5f6f7" font-family="Archivo Black, Archivo, ui-sans-serif, system-ui, sans-serif" font-size="46" font-weight="900" letter-spacing="2">
+    <text x="0" y="47">ROM</text>
+  </g>
+  <text x="152" y="47" fill="#d8fd4f" font-family="Archivo Black, Archivo, ui-sans-serif, system-ui, sans-serif" font-size="46" font-weight="900" letter-spacing="2">P</text>
+  <circle cx="212" cy="20" r="7" fill="#ff6f5e" />
+</svg>

@@ -1,0 +1,13 @@
+{
+  "extends": "./tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    // The shared preset and the policy it reads are plain ESM, because consumers
+    // load them across a package boundary where Node — not Vite — resolves them.
+    // `checkJs` means their JSDoc annotations are verified against the
+    // implementation rather than taken on trust, so the types consumers see
+    // cannot drift from what the code does.
+    "checkJs": true
+  },
+  "include": ["src/**/*.ts", "policy.mjs", "vitest/**/*.mjs", "vitest.config.ts"]
+}

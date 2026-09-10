@@ -1,0 +1,49 @@
+{
+  "name": "@romp/config",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Shared TypeScript, ESLint, Prettier and Vitest presets for the ROMP platform",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./policy": "./policy.mjs",
+    "./eslint": "./eslint/base.mjs",
+    "./eslint/react": "./eslint/react.mjs",
+    "./eslint/app": "./eslint/app.mjs",
+    "./eslint/plugin": "./eslint/plugin.mjs",
+    "./vitest": "./vitest/base.mjs",
+    "./tsconfig.base.json": "./tsconfig.base.json"
+  },
+  "files": [
+    "src",
+    "eslint",
+    "vitest",
+    "policy.mjs",
+    "tsconfig.base.json"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf .turbo coverage *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@eslint/js": "^9.17.0",
+    "@vitest/coverage-v8": "^5.0.0",
+    "eslint": "^9.17.0",
+    "eslint-config-prettier": "^9.1.0",
+    "eslint-import-resolver-typescript": "^3.7.0",
+    "eslint-plugin-import": "^2.31.0",
+    "globals": "^15.14.0",
+    "typescript-eslint": "^8.18.1",
+    "vitest": "^5.0.0"
+  },
+  "devDependencies": {
+    "@types/estree": "^1.0.9",
+    "@types/node": "^26.5.0",
+    "typescript": "^5.7.2",
+    "vite": "^8.0.0"
+  }
+}

@@ -1,0 +1,33 @@
+{
+  "name": "@romp/contracts",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Zod schemas as the single source of truth for shared types, runtime validation and OpenAPI",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts",
+    "./openapi": "./src/openapi/registry.ts",
+    "./fixtures": "./src/entities/fixtures.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf .turbo coverage *.tsbuildinfo"
+  },
+  "dependencies": {
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@romp/config": "workspace:*",
+    "@types/node": "^26.5.0",
+    "@vitest/coverage-v8": "^5.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.0"
+  }
+}

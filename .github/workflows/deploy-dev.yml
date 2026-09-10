@@ -1,0 +1,35 @@
+name: Deploy to dev
+
+# Every merge to main lands in romp-dev. Dev is not precious: if a deploy is bad,
+# the fix is the next merge.
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+    inputs:
+      store_id:
+        description: Store config to build and deploy.
+        required: false
+        default: romp
+        type: string
+
+concurrency:
+  # Serialised, not cancelled. Interrupting a deploy mid-flight can leave rules
+  # and indexes out of step with each other.
+  group: deploy-dev
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  deploy:
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: development
+      firebase_alias: dev
+      # On a push event `inputs.store_id` is empty, so this falls through to the
+      # repository variable, then to the default store.
+      store_id: ${{ inputs.store_id || vars.STORE_ID || 'romp' }}

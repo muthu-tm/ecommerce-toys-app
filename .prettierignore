@@ -1,0 +1,14 @@
+node_modules/
+dist/
+lib/
+.next/
+out/
+coverage/
+.turbo/
+.firebase/
+pnpm-lock.yaml
+packages/store-config/generated/
+apps/*/src/generated/
+apps/api/openapi.json
+ROMP Toy Store.html
+*.pdf

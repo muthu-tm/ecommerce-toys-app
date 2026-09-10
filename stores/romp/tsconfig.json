@@ -1,0 +1,9 @@
+{
+  "extends": "@romp/config/tsconfig.base.json",
+  "compilerOptions": {
+    // No `types` entry: a store config is pure data and touches no Node API, so it
+    // needs no ambient type packages.
+    "types": []
+  },
+  "include": ["store.config.ts", "seed.catalogue.ts"]
+}

@@ -1,0 +1,61 @@
+{
+  "firestore": {
+    "rules": "infra/firestore.rules",
+    "indexes": "infra/firestore.indexes.json"
+  },
+  "storage": {
+    "rules": "infra/storage.rules"
+  },
+  "extensions": {
+    "storage-resize-images": "firebase/storage-resize-images@0.2.9"
+  },
+  "functions": [
+    {
+      "source": "apps/api",
+      "codebase": "api",
+      "runtime": "nodejs20",
+      "ignore": ["node_modules", ".turbo", "coverage", "**/*.test.ts", "src/test-support/**"],
+      "predeploy": ["pnpm --filter @romp/api build"]
+    }
+  ],
+  "emulators": {
+    "auth": {
+      "port": 9099
+    },
+    "firestore": {
+      "port": 8181
+    },
+    "storage": {
+      "port": 9199
+    },
+    "functions": {
+      "port": 5001
+    },
+    "pubsub": {
+      "port": 8085
+    },
+    "ui": {
+      "enabled": true,
+      "port": 4000
+    },
+    "hub": {
+      "port": 4400
+    },
+    "logging": {
+      "port": 4500
+    },
+    "singleProjectMode": true
+  },
+  "apphosting": [
+    {
+      "backendId": "storefront",
+      "rootDir": "apps/storefront",
+      "ignore": ["node_modules", ".git", "**/*.log"]
+    },
+    {
+      "backendId": "admin",
+      "rootDir": "apps/admin",
+      "ignore": ["node_modules", ".git", "**/*.log"]
+    }
+  ]
+}

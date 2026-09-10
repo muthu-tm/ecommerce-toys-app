@@ -1,0 +1,130 @@
+name: Deploy
+
+# Reusable deploy job. Called by deploy-dev.yml (on merge) and deploy-prod.yml
+# (on a version tag). Both paths run the same steps against different projects,
+# so dev is a genuine rehearsal of prod rather than a different procedure.
+
+on:
+  workflow_call:
+    inputs:
+      environment:
+        description: GitHub environment. Approval gates and vars are attached to it.
+        required: true
+        type: string
+      firebase_alias:
+        description: Alias from .firebaserc — dev or prod.
+        required: true
+        type: string
+      store_id:
+        description: Which store config to build. The white-label seam (ADR-0005).
+        required: true
+        type: string
+      deploy_targets:
+        description: >-
+          Comma-separated firebase deploy targets. Grows as phases land:
+          functions in Task 10.
+        required: false
+        type: string
+        default: firestore,storage,apphosting
+
+permissions:
+  contents: read
+  id-token: write # Required to mint the OIDC token that WIF exchanges.
+
+env:
+  TURBO_TELEMETRY_DISABLED: 1
+  DO_NOT_TRACK: 1
+
+jobs:
+  deploy:
+    name: Deploy to ${{ inputs.environment }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    # The approval gate lives here. `environment:` only pauses for review if that
+    # environment has required reviewers configured in repository settings — the
+    # YAML alone does not enforce it. See infra/scripts/setup-wif.sh.
+    environment: ${{ inputs.environment }}
+
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: ./.github/actions/setup
+        with:
+          java: "true"
+
+      # Resolve the project from .firebaserc rather than from a GitHub variable,
+      # so the mapping from alias to project ID is reviewable in a pull request.
+      #
+      # FIREBASE_PROJECT_ID on the environment is then a cross-check, not the
+      # source: if the two disagree, someone has wired an environment to the
+      # wrong project, and deploying dev rules over prod is the one mistake in
+      # this pipeline with no cheap undo.
+      #
+      # Inputs are passed through env rather than interpolated into the script
+      # body, so nothing from the workflow call is ever evaluated as shell.
+      - name: Resolve target project
+        id: project
+        env:
+          ALIAS: ${{ inputs.firebase_alias }}
+          EXPECTED: ${{ vars.FIREBASE_PROJECT_ID }}
+          ENVIRONMENT: ${{ inputs.environment }}
+        run: |
+          set -euo pipefail
+          # Read and parse, not require: .firebaserc has no .json extension, so
+          # Node would try to evaluate it as JavaScript.
+          project=$(node -e '
+            const { readFileSync } = require("node:fs");
+            const rc = JSON.parse(readFileSync(".firebaserc", "utf8"));
+            const alias = process.env.ALIAS;
+            const id = rc.projects?.[alias];
+            if (!id) {
+              console.error(`No .firebaserc alias "${alias}". Known: ${Object.keys(rc.projects ?? {}).join(", ")}`);
+              process.exit(1);
+            }
+            process.stdout.write(id);
+          ')
+
+          if [ -n "${EXPECTED:-}" ] && [ "$EXPECTED" != "$project" ]; then
+            echo "::error::Alias '$ALIAS' resolves to '$project', but the '$ENVIRONMENT' environment expects '$EXPECTED'. Refusing to deploy."
+            exit 1
+          fi
+
+          echo "project=$project" >> "$GITHUB_OUTPUT"
+          echo "Deploying to $project"
+
+      # Re-verified here rather than trusted from the PR run. The tag or merge
+      # commit may not be a commit CI has seen, and the security rules suite is
+      # a release gate.
+      - name: Verify
+        run: pnpm turbo run lint typecheck test --continue
+
+      - name: Build
+        env:
+          STORE_ID: ${{ inputs.store_id }}
+        run: pnpm build
+
+      # No service-account JSON anywhere. The runner exchanges its OIDC token for
+      # a short-lived access token, scoped to this repository by the provider's
+      # attribute condition.
+      - name: Authenticate to Google Cloud
+        uses: google-github-actions/auth@v3
+        with:
+          workload_identity_provider: ${{ vars.GCP_WORKLOAD_IDENTITY_PROVIDER }}
+          service_account: ${{ vars.GCP_SERVICE_ACCOUNT }}
+
+      # Firestore index *deletions* are not reversible on a sensible timescale, so
+      # index changes are additive by policy (RUNBOOKS.md runbook 7). --force
+      # skips the interactive prompt; it does not skip that policy.
+      - name: Deploy
+        env:
+          STORE_ID: ${{ inputs.store_id }}
+          PROJECT: ${{ steps.project.outputs.project }}
+          TARGETS: ${{ inputs.deploy_targets }}
+        run: |
+          set -euo pipefail
+          pnpm firebase deploy \
+            --project "$PROJECT" \
+            --only "$TARGETS" \
+            --non-interactive \
+            --force

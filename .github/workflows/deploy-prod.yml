@@ -1,0 +1,56 @@
+name: Deploy to prod
+
+# Production deploys are tag-triggered and gated on a human. There is no
+# automated path from a commit to customer data.
+#
+# Two controls, and they are separate:
+#   1. This workflow only runs for a `v*` tag.
+#   2. The `production` GitHub environment must have required reviewers set, or
+#      the gate does not exist. Configuring that is a repository setting, not
+#      something this file can assert. See infra/scripts/setup-wif.sh.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+    inputs:
+      store_id:
+        description: Store config to build and deploy.
+        required: false
+        default: romp
+        type: string
+
+concurrency:
+  group: deploy-prod
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  guard:
+    name: Check the tag is on main
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      # A tag on an unmerged branch would ship code that never passed review.
+      - name: Assert the commit is an ancestor of main
+        run: |
+          if ! git merge-base --is-ancestor "${{ github.sha }}" origin/main; then
+            echo "::error::${{ github.sha }} is not on main. Tag a reviewed, merged commit."
+            exit 1
+          fi
+          echo "Commit is on main."
+
+  deploy:
+    needs: guard
+    uses: ./.github/workflows/deploy.yml
+    with:
+      environment: production
+      firebase_alias: prod
+      store_id: ${{ inputs.store_id || vars.STORE_ID || 'romp' }}

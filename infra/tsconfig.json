@@ -1,0 +1,7 @@
+{
+  "extends": "@romp/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"]
+  },
+  "include": ["tests/**/*.ts", "admins.config.ts", "vitest.config.ts"]
+}

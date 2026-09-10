@@ -1,0 +1,56 @@
+# Firebase App Hosting configuration for the storefront.
+#
+# App Hosting builds from the repository and runs the Next.js Node server, so `output:
+# 'standalone'` in next.config.mjs matters — a static export could not do SSR or ISR, and
+# every catalogue page here is server-rendered for SEO.
+#
+# The backend itself is created once per environment, either in the console or with:
+#   firebase apphosting:backends:create --project romp-dev --location asia-south1
+# Region is asia-south1 throughout: the customer base is Indian, and Firestore's location
+# is immutable after creation, so rendering next to the data is a one-way decision.
+
+runConfig:
+  # Sized for a storefront that is mostly cache hits. Revisit against real traffic in
+  # Task 24 rather than guessing higher now.
+  minInstances: 0
+  maxInstances: 10
+  concurrency: 80
+  cpu: 1
+  memoryMiB: 512
+
+env:
+  # Which store to build. The white-label seam (ADR-0005): the same pipeline and the same
+  # code deploy any store, and this is the only thing that differs.
+  - variable: STORE_ID
+    value: romp
+    availability:
+      - BUILD
+
+  # Absolute base for canonical and Open Graph URLs. Without it Next resolves social
+  # images against localhost, which looks fine locally and breaks every share preview in
+  # production.
+  - variable: NEXT_PUBLIC_SITE_URL
+    value: https://romp-dev.web.app
+    availability:
+      - BUILD
+      - RUNTIME
+
+  # Public base for product media. Storage stores an object *path*, never a download URL
+  # (a URL embeds a token that rotates on replace), so the storefront joins the path onto
+  # this base at render time. In production it is the Cloudflare-fronted Storage domain
+  # (ADR-0003); the value below is the direct bucket for dev. `NEXT_PUBLIC_` because
+  # `next/image` needs it in the browser to build the srcset — it is a hostname, not a
+  # secret. Unset, cards render a placeholder rather than a broken image.
+  - variable: NEXT_PUBLIC_MEDIA_BASE_URL
+    value: https://firebasestorage.googleapis.com/v0/b/romp-dev.firebasestorage.app/o
+    availability:
+      - BUILD
+      - RUNTIME
+
+  - variable: NEXT_TELEMETRY_DISABLED
+    value: "1"
+    availability:
+      - BUILD
+# Secrets are bound here as `secret:` references to Secret Manager, never as `value:`.
+# None are needed yet — the storefront reads the catalogue through the Admin SDK using the
+# backend's own service account. The WhatsApp token arrives in Task 11, on the API.

@@ -1,0 +1,62 @@
+@import 'tailwindcss';
+
+/*
+ * The generated theme. Written by `pnpm store:tokens` from stores/<STORE_ID>/store.config.ts,
+ * and gitignored — it is a build output.
+ *
+ * It carries two things: the `@theme inline` block that defines Tailwind's token surface
+ * (so `bg-primary` and `font-display` exist), and the `:root` custom properties holding
+ * this store's actual values. Switching stores replaces only the second part.
+ */
+@import '../generated/theme.css';
+
+/*
+ * Sources Tailwind should scan for class names. `@source` is needed for the workspace UI
+ * package because it lives outside this app's directory, and Tailwind 4 only
+ * auto-detects within the project root — without this, every class used solely inside
+ * @romp/ui would be tree-shaken out of the stylesheet.
+ */
+@source '../../../../packages/ui/src/**/*.{ts,tsx}';
+
+@layer base {
+  html {
+    /* Prevents iOS Safari inflating text in landscape without disabling user zoom. */
+    -webkit-text-size-adjust: 100%;
+    scroll-behavior: smooth;
+  }
+
+  /*
+   * Honour reduced motion for smooth scrolling too. The motion *tokens* already collapse
+   * to 0ms, but `scroll-behavior` is not a token and would otherwise keep animating.
+   */
+  @media (prefers-reduced-motion: reduce) {
+    html {
+      scroll-behavior: auto;
+    }
+  }
+
+  body {
+    background-color: var(--store-color-page);
+    color: var(--store-color-text-primary);
+    font-family: var(--store-font-body);
+    /* Reserve the scrollbar gutter so navigating between a short and a tall page does not
+       shift the layout horizontally — a CLS source that is easy to miss. */
+    scrollbar-gutter: stable;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--store-font-display);
+  }
+
+  /*
+   * A visible focus indicator for anything that does not go through @romp/ui. The
+   * components set their own via FOCUS_RING; this is the backstop, because an element
+   * with no focus indicator is unusable by keyboard.
+   */
+  :focus-visible {
+    outline: 2px solid var(--store-color-focus-ring);
+    outline-offset: 2px;
+  }
+}

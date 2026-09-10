@@ -1,0 +1,35 @@
+{
+  "name": "@romp/core",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Pure domain logic shared by browser and server: identity normalisation, password policy",
+  "type": "module",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "files": [
+    "src"
+  ],
+  "scripts": {
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:coverage": "vitest run --coverage",
+    "clean": "rm -rf .turbo coverage *.tsbuildinfo"
+  },
+  "dependencies": {
+    "@romp/contracts": "workspace:*",
+    "@zxcvbn-ts/core": "^3.0.4",
+    "@zxcvbn-ts/language-common": "^3.0.4",
+    "libphonenumber-js": "^1.11.17",
+    "zod": "^4.5.4"
+  },
+  "devDependencies": {
+    "@romp/config": "workspace:*",
+    "@types/node": "^26.5.0",
+    "@vitest/coverage-v8": "^5.0.0",
+    "typescript": "^5.7.2",
+    "vitest": "^5.0.0"
+  }
+}

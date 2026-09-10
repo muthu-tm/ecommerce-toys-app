@@ -1,0 +1,59 @@
+{
+  "ui": "stream",
+  "globalEnv": ["NODE_ENV", "STORE_ID"],
+  "globalDependencies": [
+    "packages/config/tsconfig.base.json",
+    "packages/config/policy.mjs",
+    "packages/config/eslint/**",
+    "packages/config/vitest/**",
+    ".prettierrc.json",
+    "firebase.json",
+    ".firebaserc",
+    "stores/*/store.config.ts",
+    "stores/*/assets/**"
+  ],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build", "tokens"],
+      "outputs": ["dist/**", ".next/**", "!.next/cache/**", "lib/**"]
+    },
+    "dev": {
+      "cache": false,
+      "persistent": true
+    },
+    "lint": {
+      "dependsOn": ["^build", "tokens"],
+      "outputs": []
+    },
+    "typecheck": {
+      "dependsOn": ["^build", "tokens"],
+      "outputs": []
+    },
+    "test": {
+      "dependsOn": ["^build", "tokens"],
+      "outputs": []
+    },
+    "test:watch": {
+      "cache": false,
+      "persistent": true
+    },
+    "test:coverage": {
+      "dependsOn": ["^build"],
+      "outputs": ["coverage/**"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "tokens": {
+      "cache": false
+    },
+    "@romp/storefront#tokens": {
+      "cache": false,
+      "dependsOn": ["@romp/store-config#tokens"]
+    },
+    "@romp/admin#tokens": {
+      "cache": false,
+      "dependsOn": ["@romp/store-config#tokens"]
+    }
+  }
+}

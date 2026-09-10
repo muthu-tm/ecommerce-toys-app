@@ -1,0 +1,36 @@
+@import 'tailwindcss';
+
+/*
+ * The generated theme. Written by `pnpm store:tokens` from stores/<STORE_ID>/store.config.ts,
+ * and gitignored — a build output. The backoffice uses the store's own theme so a staff
+ * member works in the same visual language customers see, and a second store's backoffice
+ * restyles with no code change.
+ */
+@import '../generated/theme.css';
+
+/* Tailwind must scan the workspace UI package, which lives outside this app's root. */
+@source '../../../../packages/ui/src/**/*.{ts,tsx}';
+
+@layer base {
+  html {
+    -webkit-text-size-adjust: 100%;
+  }
+
+  body {
+    background-color: var(--store-color-page);
+    color: var(--store-color-text-primary);
+    font-family: var(--store-font-body);
+    scrollbar-gutter: stable;
+  }
+
+  h1,
+  h2,
+  h3 {
+    font-family: var(--store-font-display);
+  }
+
+  :focus-visible {
+    outline: 2px solid var(--store-color-focus-ring);
+    outline-offset: 2px;
+  }
+}
