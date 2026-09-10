@@ -20,7 +20,7 @@
   },
   "dependencies": {
     "@romp/contracts": "workspace:*",
-    "@zxcvbn-ts/core": "^3.0.4",
+    "@zxcvbn-ts/core": "^4.2.0",
     "@zxcvbn-ts/language-common": "^3.0.4",
     "libphonenumber-js": "^1.11.17",
     "zod": "^4.5.4"
