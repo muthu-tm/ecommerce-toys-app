@@ -29,6 +29,8 @@
     "emulators:dev": "firebase emulators:start --project dev --import .firebase/seed --export-on-exit .firebase/seed",
     "test:rules": "pnpm --filter @romp/infra test",
     "firebase": "firebase",
+    "e2e": "node scripts/dev/e2e.mjs",
+    "test:e2e-scripts": "node --test scripts/dev/*.test.mjs",
     "prepare": "husky"
   },
   "devDependencies": {

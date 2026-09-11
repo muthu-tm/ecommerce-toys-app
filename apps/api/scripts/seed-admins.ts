@@ -53,7 +53,29 @@ async function main(): Promise<void> {
   const auth = getAuth();
 
   const entries = await loadAdmins(storeId);
-  const results = await seedAdmins(auth, { storeId, defaultPhoneRegion }, entries, logger);
+
+  // A fixed initial password, for deterministic local E2E only. Guarded hard: it applies
+  // solely when the Auth *emulator* is the target (`FIREBASE_AUTH_EMULATOR_HOST` set), so it
+  // can never set a known password on a real project's admin. Absent the env var, or against
+  // a real project, seeding keeps its generated-once-and-printed behaviour untouched.
+  const fixedPassword = process.env.ADMIN_SEED_PASSWORD;
+  const emulated =
+    process.env.FIREBASE_AUTH_EMULATOR_HOST !== undefined &&
+    process.env.FIREBASE_AUTH_EMULATOR_HOST !== '';
+  const makePassword =
+    fixedPassword !== undefined && fixedPassword !== '' && emulated
+      ? (): string => fixedPassword
+      : undefined;
+  if (fixedPassword !== undefined && fixedPassword !== '' && !emulated) {
+    logger.warn(
+      {},
+      'ADMIN_SEED_PASSWORD is ignored against a real project — it applies only to the Auth emulator.',
+    );
+  }
+
+  const results = makePassword
+    ? await seedAdmins(auth, { storeId, defaultPhoneRegion }, entries, logger, makePassword)
+    : await seedAdmins(auth, { storeId, defaultPhoneRegion }, entries, logger);
 
   // Print the one-time passwords for newly created accounts, plainly, so the operator can
   // relay them. Existing admins print no password because theirs was not touched.
