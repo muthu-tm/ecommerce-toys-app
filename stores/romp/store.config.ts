@@ -141,6 +141,19 @@ export default defineStoreConfig({
       bisCertifiedLabel: 'BIS certified',
       bpaFreeLabel: 'BPA-free',
       ratingCountLabel: '{count} reviews',
+      reviews: {
+        title: 'Reviews',
+        countLabel: '{count} reviews',
+        emptyLabel: 'No reviews yet. Be the first to share how it played.',
+        verifiedLabel: 'Verified purchase',
+        writeCta: 'Write a review',
+        signInPrompt: 'Sign in to write a review.',
+        ratingLabel: 'Your rating',
+        titleLabel: 'Title',
+        bodyLabel: 'Your review',
+        submitLabel: 'Post review',
+        pendingNotice: 'Thanks! Your review is with our team and will appear once approved.',
+      },
     },
 
     // The age taxonomy itself, not a hardcoded union.

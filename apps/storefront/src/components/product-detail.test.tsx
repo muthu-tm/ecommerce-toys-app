@@ -3,7 +3,7 @@ import { userEvent } from '@testing-library/user-event';
 import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
-import type { ProductDoc } from '@romp/contracts';
+import type { ProductDoc, PublicReviewView } from '@romp/contracts';
 import { aProduct } from '@romp/contracts/fixtures';
 
 import { content } from '@/lib/store';
@@ -13,6 +13,12 @@ vi.mock('next/navigation', () => ({ useRouter: () => ({ push: vi.fn(), refresh: 
 vi.mock('@/lib/cart-api', () => ({
   cartApi: { add: vi.fn(() => Promise.resolve()) },
   CartApiError: class CartApiError extends Error {},
+}));
+// The review form is a signed-in client island; default to a signed-in customer so it renders.
+vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ uid: 'cust-1', ready: true }) }));
+vi.mock('@/lib/account-api', () => ({
+  accountApi: { submitReview: vi.fn(() => Promise.resolve()) },
+  AccountApiError: class AccountApiError extends Error {},
 }));
 
 import { Breadcrumbs } from './Breadcrumbs';
@@ -203,12 +209,25 @@ describe('ProductDetail', () => {
     vi.stubEnv('NEXT_PUBLIC_MEDIA_BASE_URL', 'https://cdn.example.test');
   });
 
-  const render_ = (product: ProductDoc = aProduct()) =>
+  const aReviewView = (overrides: Partial<PublicReviewView> = {}): PublicReviewView => ({
+    id: 'review-1' as PublicReviewView['id'],
+    productId: 'wooden-blocks' as PublicReviewView['productId'],
+    authorName: 'Asha M.',
+    rating: 5 as PublicReviewView['rating'],
+    title: 'Lovely set',
+    body: 'Sturdy and beautifully sanded.',
+    verifiedPurchase: true,
+    createdAt: new Date('2026-03-01T00:00:00.000Z'),
+    ...overrides,
+  });
+
+  const render_ = (product: ProductDoc = aProduct(), reviews: readonly PublicReviewView[] = []) =>
     render(
       <ProductDetail
         product={{ ...product, id: 'wooden-blocks' }}
         variants={[aVariant()]}
         categoryName="Wooden toys"
+        reviews={reviews}
       />,
     );
 
@@ -264,8 +283,35 @@ describe('ProductDetail', () => {
     expect(screen.getByText(content.product.smallPartsWarning)).toBeInTheDocument();
   });
 
+  it('shows the empty-state copy when a product has no reviews', () => {
+    render_(aProduct(), []);
+    expect(screen.getByText(content.product.reviews.emptyLabel)).toBeInTheDocument();
+  });
+
+  it('renders a published review with its verified-purchase badge', () => {
+    render_(aProduct(), [aReviewView({ verifiedPurchase: true })]);
+    expect(screen.getByText('Lovely set')).toBeInTheDocument();
+    expect(screen.getByText('Sturdy and beautifully sanded.')).toBeInTheDocument();
+    expect(
+      screen.getByText(new RegExp(content.product.reviews.verifiedLabel, 'u')),
+    ).toBeInTheDocument();
+  });
+
+  it('escapes a review body rather than interpreting markup', () => {
+    // A body containing markup must render as text — the whole point of never using
+    // dangerouslySetInnerHTML. React escapes it, so the literal characters appear and no element is
+    // created.
+    const nasty = '<script>alert(1)</script> & <b>bold</b>';
+    const { container } = render_(aProduct(), [aReviewView({ body: nasty })]);
+    // The exact characters render as text — proof React escaped them.
+    expect(screen.getByText(nasty)).toBeInTheDocument();
+    // And no element was created from the body's markup (no <b>, no <script>).
+    expect(container.querySelector('b')).toBeNull();
+    expect(container.querySelector('script')).toBeNull();
+  });
+
   it('has no accessibility violations', async () => {
-    const { container } = render_();
+    const { container } = render_(aProduct(), [aReviewView()]);
     await expectNoAxeViolations(container);
   });
 });

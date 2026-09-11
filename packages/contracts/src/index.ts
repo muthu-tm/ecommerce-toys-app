@@ -358,6 +358,29 @@ export type {
   AddressView,
 } from './http/addresses';
 
+export {
+  ModerationQueueResponseSchema,
+  ModerationReviewViewSchema,
+  OwnReviewListResponseSchema,
+  OwnReviewViewSchema,
+  PublicReviewViewSchema,
+  ReviewListResponseSchema,
+  ReviewRejectRequestSchema,
+  ReviewSubmitRequestSchema,
+  ReviewSubmitResponseSchema,
+} from './http/reviews';
+export type {
+  ModerationQueueResponse,
+  ModerationReviewView,
+  OwnReviewListResponse,
+  OwnReviewView,
+  PublicReviewView,
+  ReviewListResponse,
+  ReviewRejectRequest,
+  ReviewSubmitRequest,
+  ReviewSubmitResponse,
+} from './http/reviews';
+
 export { SubmitPaymentProofRequestSchema, SubmitPaymentProofResponseSchema } from './http/payments';
 export type { SubmitPaymentProofRequest, SubmitPaymentProofResponse } from './http/payments';
 

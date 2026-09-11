@@ -24,6 +24,14 @@ let categoryResult: WithId<CategoryDoc> | null = null;
 vi.mock('@/server/catalogue', () => ({
   getProduct: () => Promise.resolve(productResult),
   getCategory: () => Promise.resolve(categoryResult),
+  getProductReviews: () => Promise.resolve([]),
+}));
+
+// The review form is a signed-in client island; the page test only cares the page composes.
+vi.mock('@/lib/auth-context', () => ({ useAuth: () => ({ uid: null, ready: true }) }));
+vi.mock('@/lib/account-api', () => ({
+  accountApi: { submitReview: vi.fn(() => Promise.resolve()) },
+  AccountApiError: class AccountApiError extends Error {},
 }));
 
 vi.mock('next/navigation', () => ({

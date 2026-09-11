@@ -131,6 +131,9 @@ export function AccountDashboard() {
         <Link href="/account/wishlist" className="text-accent underline">
           Saved toys
         </Link>
+        <Link href="/account/reviews" className="text-accent underline">
+          Reviews
+        </Link>
         <Link href="/account/notifications" className="text-accent underline">
           Notifications
         </Link>

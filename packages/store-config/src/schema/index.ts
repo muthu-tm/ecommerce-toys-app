@@ -80,9 +80,16 @@ export {
   NotificationTemplatesSchema,
   PoliciesSchema,
   ProductContentSchema,
+  ReviewsContentSchema,
   renderTemplate,
 } from './content';
-export type { AgeBandConfig, CategorySeed, Content, ProductContent } from './content';
+export type {
+  AgeBandConfig,
+  CategorySeed,
+  Content,
+  ProductContent,
+  ReviewsContent,
+} from './content';
 export { FEATURE_FLAG_NAMES, FeatureFlagsSchema } from './features';
 export type { FeatureFlags } from './features';
 export { LocaleConfigSchema } from './locale';

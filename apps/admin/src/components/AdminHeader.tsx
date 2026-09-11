@@ -30,6 +30,9 @@ export function AdminHeader() {
           <Link href="/orders" className="font-body text-sm text-text-primary hover:text-accent">
             Orders
           </Link>
+          <Link href="/reviews" className="font-body text-sm text-text-primary hover:text-accent">
+            Reviews
+          </Link>
           <Link href="/dashboard" className="font-body text-sm text-text-primary hover:text-accent">
             Dashboard
           </Link>

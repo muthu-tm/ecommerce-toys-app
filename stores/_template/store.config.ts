@@ -138,6 +138,19 @@ export default defineStoreConfig({
       bisCertifiedLabel: 'Certified',
       bpaFreeLabel: 'BPA-free',
       ratingCountLabel: '{count} ratings',
+      reviews: {
+        title: 'Ratings & reviews',
+        countLabel: '{count} ratings',
+        emptyLabel: 'No reviews yet.',
+        verifiedLabel: 'Verified buyer',
+        writeCta: 'Write a review',
+        signInPrompt: 'Sign in to leave a review.',
+        ratingLabel: 'Rating',
+        titleLabel: 'Headline',
+        bodyLabel: 'Review',
+        submitLabel: 'Submit',
+        pendingNotice: 'Thank you. Your review will be published after review.',
+      },
     },
 
     // Different bands from ROMP, so nothing can assume ROMP's taxonomy.

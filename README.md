@@ -32,6 +32,7 @@ Start here, in this order:
 | [`docs/NOTIFICATIONS.md`](docs/NOTIFICATIONS.md) | Event → notification routing, audiences                         |
 | [`docs/SECURITY.md`](docs/SECURITY.md)           | Rules model, PII map, threat notes                              |
 | [`docs/RUNBOOKS.md`](docs/RUNBOOKS.md)           | Operational procedures for when things break                    |
+| [`docs/LOCAL_E2E.md`](docs/LOCAL_E2E.md)         | Run the whole stack locally and drive the Playwright E2E suite  |
 | [`docs/PROGRESS.md`](docs/PROGRESS.md)           | Living build checklist                                          |
 | [`docs/adr/`](docs/adr/)                         | Architecture Decision Records — why things are the way they are |
 
@@ -63,6 +64,19 @@ pnpm seed:emulator  # start Firestore, seed demo-romp, shut down
 Firestore is on port **8181** rather than the Firebase default 8080, which collides with Docker and
 most local API servers. Everything else is on its default port.
 
+Running the whole stack for end-to-end testing:
+
+```bash
+pnpm e2e start                        # emulators + seed + api + storefront + admin, all healthy
+pnpm e2e test                         # confirm every service is up and functional
+pnpm --filter @romp/e2e test:e2e      # the Playwright customer + admin happy paths
+pnpm e2e stop                         # tear it down
+```
+
+One command brings the full stack up, seeded and health-checked, against the Firebase emulators —
+fully offline, no real project. See [`docs/LOCAL_E2E.md`](docs/LOCAL_E2E.md) for the profiles,
+the orchestrator commands, and troubleshooting.
+
 ---
 
 ## Workspace map
@@ -72,7 +86,8 @@ romp/
 ├── apps/
 │   ├── storefront/        Next.js — example.com          (SSR/ISR public reads)
 │   ├── admin/             Next.js — admin.example.com    (client-heavy, no SEO)
-│   └── api/               Fastify on Cloud Functions v2 — api.example.com
+│   ├── api/               Fastify on Cloud Functions v2 — api.example.com
+│   └── e2e/               Playwright — customer + admin happy paths (local only)
 ├── packages/
 │   ├── contracts/         Zod schemas → shared types, OpenAPI source of truth
 │   ├── core/              Domain logic: pricing, state machines, routing. Zero I/O.
@@ -114,6 +129,9 @@ milliseconds and lets the search backend be swapped without touching business lo
 | `pnpm seed --project <id>`           | Seed warehouses, categories, settings and the catalogue       |
 | `pnpm seed:emulator`                 | Start Firestore, seed `demo-romp`, shut down                  |
 | `pnpm --filter @romp/storefront dev` | Storefront on :3000 (regenerates tokens first)                |
+| `pnpm e2e start` / `stop` / `status` | Run the full local stack for E2E — see `docs/LOCAL_E2E.md`    |
+| `pnpm e2e test`                      | Quick health + functional check of a running stack            |
+| `pnpm --filter @romp/e2e test:e2e`   | Playwright customer + admin happy-path suite                  |
 | `pnpm format`                        | Prettier write                                                |
 | `pnpm clean`                         | Remove build and cache output                                 |
 

@@ -13,6 +13,7 @@ export {
   notificationBacklogAlarm,
   notificationDispatcher,
   reservationSweeper,
+  reviewRatingAggregator,
 } from './functions';
 
 /**

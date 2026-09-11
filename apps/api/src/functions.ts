@@ -3,10 +3,11 @@ import { onDocumentCreated, onDocumentWritten } from 'firebase-functions/v2/fire
 import { onSchedule } from 'firebase-functions/v2/scheduler';
 import { onObjectFinalized } from 'firebase-functions/v2/storage';
 
-import { StoredEventSchema } from '@romp/contracts';
-import type { CountableProduct } from '@romp/core';
+import { RATING_COUNTED_STATUSES, StoredEventSchema } from '@romp/contracts';
+import type { CountableProduct, CountableReview } from '@romp/core';
 import {
   applyProductCountDeltas,
+  applyReviewRatingChange,
   asSystem,
   COLLECTIONS,
   computeDailyRollup,
@@ -248,6 +249,68 @@ export const categoryProductCounter = onDocumentWritten(
       logger.error(
         { event: 'category.count.failed', productId: event.params.productId, error },
         'category.count.failed',
+      );
+    }
+  },
+);
+
+/** Reduces a stored review document to whether it counts toward the rating and its stars. */
+function countableReviewFrom(data: Record<string, unknown> | undefined): CountableReview | null {
+  if (data === undefined) return null;
+  const counted =
+    typeof data.status === 'string' &&
+    (RATING_COUNTED_STATUSES as readonly string[]).includes(data.status);
+  const rating = typeof data.rating === 'number' ? data.rating : 0;
+  return { counted, rating };
+}
+
+/** The product a review is for, read from whichever snapshot exists. */
+function reviewProductId(
+  before: Record<string, unknown> | undefined,
+  after: Record<string, unknown> | undefined,
+): string | null {
+  const raw = after?.productId ?? before?.productId;
+  return typeof raw === 'string' ? raw : null;
+}
+
+/**
+ * Maintains `products.ratingAvg` and `ratingCount` as reviews are written.
+ *
+ * Firestore cannot average a query, so a product's rating is a denormalised pair — and, like the
+ * facet count, it needs exactly one writer. This is that writer: on any `reviews/{id}` write it
+ * reduces the before and after state to "does this count, and at how many stars", and applies the
+ * resulting change to the product. Only `published` reviews count, so a publish is +1 and +its
+ * stars, a rejection or a pull-back is −1 and −its stars, and a rating edited while published moves
+ * only the average. A submit that stays pending, or a rejection of an already-hidden review, writes
+ * nothing.
+ *
+ * The arithmetic is pure and unit-tested in `@romp/core`; applying it (reading the product,
+ * recomputing the average in a transaction) is `@romp/data`'s `applyReviewRatingChange`. A mean
+ * cannot be maintained with `increment`, so this is a read-modify-write rather than a counter —
+ * which also means a retried invocation recomputes from the current stored pair rather than
+ * double-applying, so it is safe under the at-least-once delivery a counter would drift under.
+ */
+export const reviewRatingAggregator = onDocumentWritten(
+  { region: REGION, document: `${COLLECTIONS.reviews}/{reviewId}` },
+  async (event) => {
+    const beforeData = event.data?.before.data();
+    const afterData = event.data?.after.data();
+    const productId = reviewProductId(beforeData, afterData);
+    if (productId === null) return;
+
+    try {
+      await applyReviewRatingChange(
+        storeContext(),
+        productId,
+        countableReviewFrom(beforeData),
+        countableReviewFrom(afterData),
+      );
+    } catch (error) {
+      // A failed rating update is a stale average, not lost data — the reviews themselves are the
+      // ledger of truth. Log so a persistently failing aggregator is visible.
+      logger.error(
+        { event: 'review.rating.failed', reviewId: event.params.reviewId, productId, error },
+        'review.rating.failed',
       );
     }
   },

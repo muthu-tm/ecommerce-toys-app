@@ -1,0 +1,8 @@
+{
+  "extends": "@romp/config/tsconfig.base.json",
+  "compilerOptions": {
+    "types": ["node"],
+    "noEmit": true
+  },
+  "include": ["tests/**/*.ts", "playwright.config.ts", "global-setup.ts", "fixtures/**/*.ts"]
+}

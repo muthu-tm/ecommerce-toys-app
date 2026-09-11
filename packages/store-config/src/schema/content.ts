@@ -146,6 +146,38 @@ export const NotificationTemplatesSchema = z.object(
  * than toys keeps the safety block (it can carry any compliance line) or leaves its
  * product safety flags false, in which case the notices never render.
  */
+/**
+ * The product-page review section copy.
+ *
+ * Every string the review list and submission form render, so a second store's reviews read in its
+ * own voice. `{count}` is interpolated into the heading.
+ */
+export const ReviewsContentSchema = z.object({
+  /** Section heading, e.g. "Reviews". */
+  title: z.string().min(1).max(60),
+  /** Heading suffix with the count, e.g. "24 reviews". `{count}` is interpolated. */
+  countLabel: z.string().min(1).max(60),
+  /** Shown when a product has no published reviews yet. */
+  emptyLabel: z.string().min(1).max(120),
+  /** The verified-purchase badge text. */
+  verifiedLabel: z.string().min(1).max(40),
+  /** The "write a review" call to action. */
+  writeCta: z.string().min(1).max(40),
+  /** Prompt shown to a signed-out visitor in place of the form. */
+  signInPrompt: z.string().min(1).max(120),
+  /** The rating field label. */
+  ratingLabel: z.string().min(1).max(40),
+  /** The title field label. */
+  titleLabel: z.string().min(1).max(40),
+  /** The body field label. */
+  bodyLabel: z.string().min(1).max(40),
+  /** The submit button label. */
+  submitLabel: z.string().min(1).max(40),
+  /** Confirmation after a submission, explaining it awaits moderation. */
+  pendingNotice: z.string().min(1).max(200),
+});
+export type ReviewsContent = z.infer<typeof ReviewsContentSchema>;
+
 export const ProductContentSchema = z.object({
   /** The first breadcrumb, linking home. The rest are derived from the category and product. */
   breadcrumbHome: z.string().min(1).max(40),
@@ -169,6 +201,8 @@ export const ProductContentSchema = z.object({
   bpaFreeLabel: z.string().min(1).max(60),
   /** Suffix for the rating, e.g. "18 reviews". `{count}` is interpolated. */
   ratingCountLabel: z.string().min(1).max(60),
+  /** The review list and submission form copy. */
+  reviews: ReviewsContentSchema,
 });
 export type ProductContent = z.infer<typeof ProductContentSchema>;
 
