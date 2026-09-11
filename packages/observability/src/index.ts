@@ -35,6 +35,7 @@ export {
   InternalError,
   InvalidStateTransitionError,
   NotFoundError,
+  PaymentAmountMismatchError,
   RateLimitedError,
   RefundExceedsRefundableError,
   ReservationExpiredError,

@@ -321,6 +321,60 @@ export type {
   UpdateCartRequest,
 } from './http/cart';
 
+export {
+  CheckoutQuoteLineSchema,
+  CheckoutQuoteRequestSchema,
+  CheckoutQuoteResponseSchema,
+} from './http/checkout';
+export type {
+  CheckoutQuoteLine,
+  CheckoutQuoteRequest,
+  CheckoutQuoteResponse,
+} from './http/checkout';
+
+export { OrderViewSchema, PlaceOrderRequestSchema, PlaceOrderResponseSchema } from './http/orders';
+export type { OrderView, PlaceOrderRequest, PlaceOrderResponse } from './http/orders';
+
+export { SubmitPaymentProofRequestSchema, SubmitPaymentProofResponseSchema } from './http/payments';
+export type { SubmitPaymentProofRequest, SubmitPaymentProofResponse } from './http/payments';
+
+export {
+  DailyAnalyticsRangeRequestSchema,
+  DailyAnalyticsResponseSchema,
+  DailyAnalyticsRowSchema,
+} from './http/admin-analytics';
+export type {
+  DailyAnalyticsRangeRequest,
+  DailyAnalyticsResponse,
+  DailyAnalyticsRow,
+} from './http/admin-analytics';
+
+export {
+  AdminOrderActionResponseSchema,
+  AdminOrderListRequestSchema,
+  AdminOrderListResponseSchema,
+  AdminOrderMutationResponseSchema,
+  CancelOrderRequestSchema,
+  FulfilmentRequestSchema,
+  IssueRefundRequestSchema,
+  IssueRefundResponseSchema,
+  RejectPaymentRequestSchema,
+  VerifyPaymentRequestSchema,
+} from './http/admin-orders';
+export type {
+  AdminOrderActionResponse,
+  AdminOrderListRequest,
+  AdminOrderListResponse,
+  AdminOrderMutationResponse,
+  CancelOrderRequest,
+  FulfilmentRequest,
+  IssueRefundRequest,
+  IssueRefundResponse,
+  RejectPaymentRequest,
+  ResolvedAdminOrderListRequest,
+  VerifyPaymentRequest,
+} from './http/admin-orders';
+
 // --- openapi ----------------------------------------------------------------
 // Deliberately not re-exported from the barrel: importing it calls
 // `extendZodWithOpenApi`, which patches the shared Zod instance. Only the spec

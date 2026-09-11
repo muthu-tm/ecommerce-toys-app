@@ -13,6 +13,10 @@ import { ReservationStatusSchema } from '../domain/reservation';
 import { RatingSchema, ReviewStatusSchema } from '../domain/review';
 import { AudienceSchema, EventTypeSchema, NotificationTypeSchema } from '../events';
 import {
+  DailyAnalyticsRangeRequestSchema,
+  DailyAnalyticsResponseSchema,
+} from '../http/admin-analytics';
+import {
   CreateProductRequestSchema,
   CreateProductResponseSchema,
   CreateVariantRequestSchema,
@@ -32,6 +36,16 @@ import {
   UpdateCategoryRequestSchema,
 } from '../http/admin-category';
 import {
+  AdminOrderListRequestSchema,
+  AdminOrderListResponseSchema,
+  CancelOrderRequestSchema,
+  FulfilmentRequestSchema,
+  IssueRefundRequestSchema,
+  IssueRefundResponseSchema,
+  RejectPaymentRequestSchema,
+  VerifyPaymentRequestSchema,
+} from '../http/admin-orders';
+import {
   CheckIdentifierRequestSchema,
   CheckIdentifierResponseSchema,
   MeResponseSchema,
@@ -41,8 +55,14 @@ import {
   RegisterResponseSchema,
 } from '../http/auth';
 import { AddCartItemRequestSchema, CartViewSchema, UpdateCartRequestSchema } from '../http/cart';
+import { CheckoutQuoteRequestSchema, CheckoutQuoteResponseSchema } from '../http/checkout';
 import { ERROR_DEFINITIONS, ErrorCodeSchema, errorTypeUri } from '../http/error-codes';
 import type { ErrorCode } from '../http/error-codes';
+import { OrderViewSchema, PlaceOrderRequestSchema, PlaceOrderResponseSchema } from '../http/orders';
+import {
+  SubmitPaymentProofRequestSchema,
+  SubmitPaymentProofResponseSchema,
+} from '../http/payments';
 import {
   PROBLEM_JSON_CONTENT_TYPE,
   ProblemDetailsSchema,
@@ -234,6 +254,80 @@ component('CartView', CartViewSchema, {
     'The cart as rendered: lines with snapshots and a recomputed subtotal, gift-wrap, item count. All totals are display-only — the authoritative amount is the checkout quote.',
 });
 
+// --- checkout & orders ------------------------------------------------------
+component('CheckoutQuoteRequest', CheckoutQuoteRequestSchema, {
+  description:
+    'Request a fresh quote for the caller’s own cart. Carries only the delivery speed; the cart, gift-wrap flag and every price are resolved server-side.',
+});
+component('CheckoutQuoteResponse', CheckoutQuoteResponseSchema, {
+  description:
+    'The quote, recomputed from live prices: priced lines plus subtotal, gift wrap, shipping and GST. A preview shown before payment, recomputed again at placement.',
+});
+component('PlaceOrderRequest', PlaceOrderRequestSchema, {
+  description:
+    'Place the caller’s cart as an order. Carries a saved address, delivery speed and gift choices; the cart, lines, totals and UPI payload are produced server-side in one transaction.',
+});
+component('PlaceOrderResponse', PlaceOrderResponseSchema, {
+  description:
+    'The placed order: its document ID, the customer-facing humanId, the exact UPI payload to render as a QR, the committed amounts and the status (awaiting_payment).',
+});
+component('OrderView', OrderViewSchema, {
+  description:
+    'A customer’s own order: immutable line snapshots, committed amounts, shipping address, delivery and gift choices, and the payment block carrying the QR payload and verification state.',
+});
+component('SubmitPaymentProofRequest', SubmitPaymentProofRequestSchema, {
+  description:
+    'A payment reference (raw; the server normalises) and an optional already-uploaded proof path. No amount — the amount to match is the one the order’s QR fixed.',
+});
+component('SubmitPaymentProofResponse', SubmitPaymentProofResponseSchema, {
+  description:
+    'Confirms the order moved to pending_verification and records when the reference was submitted. The normalised reference is not echoed.',
+});
+
+// --- admin orders & money ---------------------------------------------------
+component('VerifyPaymentRequest', VerifyPaymentRequestSchema, {
+  description:
+    'The amount the operator read from the bank, in paise. Compared to the order total exactly — a short or over payment is refused, never accepted as close enough.',
+});
+component('RejectPaymentRequest', RejectPaymentRequestSchema, {
+  description:
+    'The reason a payment could not be matched. Shown to the customer, who may correct the reference and resubmit.',
+});
+component('IssueRefundRequest', IssueRefundRequestSchema, {
+  description:
+    'A refund against a paid order: a positive amount (capped at the order total), a reason (some require a note), the outward reference once paid, and whether to restock. Owner-only.',
+});
+component('IssueRefundResponse', IssueRefundResponseSchema, {
+  description:
+    'The refund id, the order’s running refunded total, and its status — refunded once the whole total has been returned.',
+});
+component('AdminOrderListRequest', AdminOrderListRequestSchema, {
+  description:
+    'Backoffice order list. Filter by payment status or fulfilment status (one at a time), or search an exact humanId; plus limit and an opaque cursor. Newest first.',
+});
+component('AdminOrderListResponse', AdminOrderListResponseSchema, {
+  description:
+    'A page of orders in the customer-facing view, with a nextCursor (null on the last page).',
+});
+component('FulfilmentRequest', FulfilmentRequestSchema, {
+  description:
+    'Advance fulfilment: the target stage, plus carrier and tracking (required to ship) or a hold reason (required to hold). Independent of payment status, but packing requires a paid order.',
+});
+component('CancelOrderRequest', CancelOrderRequestSchema, {
+  description:
+    'Cancel an order with a customer-facing reason. `restock` returns a paid order’s committed units to stock; it is ignored for a pre-payment cancel, which releases the reservation regardless.',
+});
+
+// --- admin analytics --------------------------------------------------------
+component('DailyAnalyticsRangeRequest', DailyAnalyticsRangeRequestSchema, {
+  description:
+    'The date range the dashboard charts, both ends inclusive, yyyy-mm-dd in the store timezone. Start must not be after end.',
+});
+component('DailyAnalyticsResponse', DailyAnalyticsResponseSchema, {
+  description:
+    'Pre-computed daily rollups for the range, oldest first — revenue, order and paid counts, refunds and AOV. Missing days do not appear; the dashboard fills gaps with zeroes.',
+});
+
 /** A `$ref` to a registered component. */
 export function schemaRef(id: string): { readonly $ref: string } {
   return { $ref: `#/components/schemas/${id}` };
@@ -253,6 +347,25 @@ export function buildComponentSchemas(io: 'input' | 'output' = 'output'): Record
     target: 'draft-2020-12', // OpenAPI 3.1 is JSON Schema 2020-12.
     io,
     uri: (id) => `#/components/schemas/${id}`,
+    // Don't throw on a type with no direct JSON Schema form (a `Date`); emit an
+    // empty schema and let the `override` below give it the right wire shape.
+    unrepresentable: 'any',
+    // `InstantSchema` is a `z.date()` because the contract is shared with server
+    // code that works in `Date` (ADR: converters own the Timestamp boundary). A
+    // `Date` cannot be represented in JSON Schema, but across the HTTP boundary an
+    // instant is an ISO 8601 string — which is exactly what it must be documented
+    // as. Without this the generator throws on any response carrying a timestamp.
+    override: (context) => {
+      if (context.zodSchema._zod.def.type === 'date') {
+        // Zod's `override` contract is to mutate `context.jsonSchema` in place — that is the
+        // only way it feeds the change back into the emitted document. The reassignment is the
+        // API, not an accident, so `no-param-reassign` is disabled for these two lines.
+        /* eslint-disable no-param-reassign */
+        context.jsonSchema.type = 'string';
+        context.jsonSchema.format = 'date-time';
+        /* eslint-enable no-param-reassign */
+      }
+    },
   });
 
   return schemas;

@@ -52,8 +52,10 @@ export {
 } from './context';
 export type { Caller, Role, StoreContext } from './context';
 
-export { decodeCursor, encodeCursor } from './cursor';
-export type { DecodedCursor } from './cursor';
+export { decodeCursor, decodeOrderCursor, encodeCursor, encodeOrderCursor } from './cursor';
+export type { DecodedCursor, DecodedOrderCursor } from './cursor';
+
+export { isAlreadyExists } from './firestore-errors';
 
 export { countQuery, getDocument, getDocuments, runQuery } from './repositories/read';
 
@@ -61,6 +63,14 @@ export * from './repositories/catalogue';
 export * from './repositories/catalogue-write';
 export * from './repositories/category-write';
 export * from './repositories/cart-write';
+export * from './repositories/order-write';
+export * from './repositories/payment-write';
+export * from './repositories/reservation-write';
+export * from './repositories/verification-write';
+export * from './repositories/refund-write';
+export * from './repositories/fulfilment-write';
+export * from './repositories/cancel-write';
+export * from './repositories/analytics-write';
 export * from './repositories/inventory-write';
 export * from './repositories/accounts';
 export * from './repositories/identity';

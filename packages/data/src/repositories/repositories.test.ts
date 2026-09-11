@@ -71,6 +71,7 @@ import {
   listModerationQueue,
   listNotifications,
   listOrderEvents,
+  listOrders,
   listOrdersByFulfilmentStatus,
   listOrdersForUser,
   listOwnReviews,
@@ -704,6 +705,84 @@ describe('orders', () => {
       NotFoundError,
     );
     expect(await findOrderByHumanId(recorder.context, STAFF, 'RMP-1001')).toBeNull();
+  });
+
+  it('lists orders newest-first, staff-only, with no filter by default', async () => {
+    const recorder = firestoreRecorder({ documents: { orders: [] } });
+    await listOrders(recorder.context, STAFF);
+
+    expect(recorder.orderBys()).toContainEqual(['createdAt', 'desc']);
+    // No status/fulfilment where clause when unfiltered.
+    expect(recorder.wheres()).toEqual([]);
+  });
+
+  it('refuses the admin order list to a customer', async () => {
+    const recorder = firestoreRecorder({ documents: { orders: [] } });
+    await expect(listOrders(recorder.context, CUSTOMER)).rejects.toThrow(NotFoundError);
+  });
+
+  it('filters by payment status when asked', async () => {
+    const recorder = firestoreRecorder({ documents: { orders: [] } });
+    await listOrders(recorder.context, STAFF, { status: 'paid' });
+
+    expect(recorder.wheres()).toContainEqual(['status', '==', 'paid']);
+  });
+
+  it('filters by fulfilment status on the nested field', async () => {
+    const recorder = firestoreRecorder({ documents: { orders: [] } });
+    await listOrders(recorder.context, STAFF, { fulfilmentStatus: 'shipped' });
+
+    expect(recorder.wheres()).toContainEqual(['fulfilment.status', '==', 'shipped']);
+  });
+
+  it('applies only the payment status when both filters are given (index-safe)', async () => {
+    const recorder = firestoreRecorder({ documents: { orders: [] } });
+    await listOrders(recorder.context, STAFF, { status: 'paid', fulfilmentStatus: 'shipped' });
+
+    expect(recorder.wheres()).toContainEqual(['status', '==', 'paid']);
+    expect(recorder.wheres()).not.toContainEqual(['fulfilment.status', '==', 'shipped']);
+  });
+
+  it('short-circuits a humanId search to a single-order lookup, no pagination', async () => {
+    const recorder = firestoreRecorder({ documents: { orders: [] } });
+    const page = await listOrders(recorder.context, STAFF, { humanId: 'RMP-24817' });
+
+    // The human-ID lookup query, not the paginated list — a `humanId` where, no createdAt order.
+    expect(recorder.wheres()).toContainEqual(['humanId', '==', 'RMP-24817']);
+    expect(page.nextCursor).toBeNull();
+    expect(page.items).toEqual([]);
+  });
+
+  it('issues a next cursor only when a further page exists', async () => {
+    // Ask for 1, seed 2: hasMore, so a cursor is issued and the page is trimmed to the limit.
+    const recorder = firestoreRecorder({
+      documents: {
+        orders: [withDocId('order-a', anOrder()), withDocId('order-b', anOrder())],
+      },
+    });
+    const page = await listOrders(recorder.context, STAFF, { limit: 1 });
+
+    expect(page.items).toHaveLength(1);
+    expect(page.nextCursor).not.toBeNull();
+  });
+
+  it('applies a cursor as a startAfter clause', async () => {
+    const first = firestoreRecorder({
+      documents: {
+        orders: [withDocId('order-a', anOrder()), withDocId('order-b', anOrder())],
+      },
+    });
+    const page = await listOrders(first.context, STAFF, { limit: 1 });
+    if (page.nextCursor === null) throw new Error('expected a cursor');
+
+    const second = firestoreRecorder({ documents: { orders: [] } });
+    await listOrders(second.context, STAFF, { limit: 1, cursor: page.nextCursor });
+
+    const startAfter = second.collections
+      .flatMap((collection) => collection.clauses)
+      .find((clause) => clause.kind === 'startAfter');
+    expect(startAfter).toBeDefined();
+    expect(startAfter?.args).toHaveLength(2);
   });
 
   it('checks the parent order before reading its audit trail', async () => {

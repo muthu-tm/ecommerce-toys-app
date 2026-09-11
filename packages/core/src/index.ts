@@ -57,15 +57,33 @@ export type {
   VariantForSummary,
 } from './catalogue';
 
-export { applyCartMutation, cartItemCount, cartSubtotal, mergeCarts } from './commerce';
+export {
+  allocateStock,
+  applyCartMutation,
+  applyReservation,
+  buildUpiUri,
+  cartItemCount,
+  cartSubtotal,
+  computeOrderTotals,
+  formatOrderNumber,
+  mergeCarts,
+} from './commerce';
 export type {
   ApplyCartMutationResult,
+  ApplyReservationResult,
   CartLineView,
   CartMutation,
   CartMutationContext,
   CartMutationRefusal,
+  OrderLineInput,
+  OrderTotals,
+  OrderTotalsSettings,
   VariantSnapshot,
+  WarehouseStock,
 } from './commerce';
+
+export { aggregateDailyOrders, zonedDayWindow } from './analytics';
+export type { DailyRollup, DayWindow, RollupOrder } from './analytics';
 
 export {
   NOTIFICATION_ROUTES,

@@ -10,10 +10,14 @@ import type { IdempotencyStore } from './plugins/idempotency';
 import { createRateLimiter } from './plugins/rate-limit';
 import type { RateLimiter } from './plugins/rate-limit';
 import { registerAdminRoutes } from './routes/admin';
+import { registerAdminAnalyticsRoutes } from './routes/admin-analytics';
+import { registerAdminOrderRoutes } from './routes/admin-orders';
 import { registerAuthRoutes } from './routes/auth';
 import { registerCartRoutes } from './routes/cart';
 import { registerCategoryRoutes } from './routes/categories';
+import { registerCheckoutRoutes } from './routes/checkout';
 import { registerMeRoutes } from './routes/me';
+import { registerOrderRoutes } from './routes/orders';
 import { registerProductRoutes } from './routes/products';
 import { COMMIT, VERSION } from './version';
 
@@ -86,6 +90,10 @@ export async function buildApp(deps: ApiDeps, options: BuildAppOptions = {}): Pr
   registerProductRoutes(app);
   registerCategoryRoutes(app);
   registerCartRoutes(app);
+  registerCheckoutRoutes(app);
+  registerOrderRoutes(app);
+  registerAdminOrderRoutes(app);
+  registerAdminAnalyticsRoutes(app);
 
   return app;
 }

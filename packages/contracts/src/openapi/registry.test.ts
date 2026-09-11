@@ -68,6 +68,14 @@ describe('buildOpenApiDocument', () => {
     expect(input.Utr?.maxLength).toBe(128);
   });
 
+  it('emits an Instant as an ISO date-time string, never a bare Date', () => {
+    // OrderView carries createdAt/updatedAt. A `z.date()` has no JSON Schema form,
+    // so the generator must render it as the string it actually is on the wire —
+    // otherwise a generated client cannot describe an order's timestamps at all.
+    const orderView = schemas.OrderView as { properties?: Record<string, Record<string, unknown>> };
+    expect(orderView.properties?.createdAt).toMatchObject({ type: 'string', format: 'date-time' });
+  });
+
   it('emits every enum with its full member list', () => {
     expect(schemas.OrderStatus).toMatchObject({
       type: 'string',
@@ -162,6 +170,23 @@ describe('buildOpenApiDocument', () => {
       'ErrorCode',
       'ValidationIssue',
       'ProblemDetails',
+      'CheckoutQuoteRequest',
+      'CheckoutQuoteResponse',
+      'PlaceOrderRequest',
+      'PlaceOrderResponse',
+      'OrderView',
+      'SubmitPaymentProofRequest',
+      'SubmitPaymentProofResponse',
+      'VerifyPaymentRequest',
+      'RejectPaymentRequest',
+      'IssueRefundRequest',
+      'IssueRefundResponse',
+      'AdminOrderListRequest',
+      'AdminOrderListResponse',
+      'FulfilmentRequest',
+      'CancelOrderRequest',
+      'DailyAnalyticsRangeRequest',
+      'DailyAnalyticsResponse',
     ]) {
       expect(schemas[name], `${name} is not registered as a component`).toBeDefined();
     }

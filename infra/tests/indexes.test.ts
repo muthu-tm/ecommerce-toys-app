@@ -197,6 +197,16 @@ const REPOSITORY_QUERIES: readonly (readonly [string, string, QueryShape])[] = [
     { equalities: ['fulfilment.status'], arrayContains: [], ranges: [], orderBy: ['createdAt'] },
   ],
   [
+    'the admin order list filtered by payment status',
+    'orders',
+    { equalities: ['status'], arrayContains: [], ranges: [], orderBy: ['createdAt'] },
+  ],
+  [
+    'the admin order list filtered by fulfilment status',
+    'orders',
+    { equalities: ['fulfilment.status'], arrayContains: [], ranges: [], orderBy: ['createdAt'] },
+  ],
+  [
     'order lookup by customer-facing number',
     'orders',
     { equalities: ['humanId'], arrayContains: [], ranges: [], orderBy: [] },

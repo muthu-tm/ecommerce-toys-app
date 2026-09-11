@@ -7,6 +7,7 @@ import type { CategoryParentRefusal, CountableProduct } from '@romp/core';
 import type { Caller, StoreContext } from '../context';
 import { requireStaff } from '../context';
 import { converters } from '../converters';
+import { isAlreadyExists } from '../firestore-errors';
 import { COLLECTIONS, paths } from '../paths';
 
 /**
@@ -99,15 +100,6 @@ export class CategoryHasChildrenError extends Error {
     this.name = 'CategoryHasChildrenError';
     this.slug = slug;
   }
-}
-
-/** Whether an error is Firestore's ALREADY_EXISTS from a create against an existing document. */
-function isAlreadyExists(error: unknown): boolean {
-  if (typeof error !== 'object' || error === null) return false;
-  const code = (error as { code?: unknown }).code;
-  if (code === 6 || code === 'already-exists') return true;
-  const message = (error as { message?: unknown }).message;
-  return typeof message === 'string' && /already exists/iu.test(message);
 }
 
 /**

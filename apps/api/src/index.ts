@@ -12,6 +12,7 @@ export {
   mediaFinalizer,
   notificationBacklogAlarm,
   notificationDispatcher,
+  reservationSweeper,
 } from './functions';
 
 /**

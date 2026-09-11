@@ -140,6 +140,10 @@ export const paths = {
 
   dailyAnalytics: (date: string): string =>
     `${COLLECTIONS.analytics}/${FIXED_DOCUMENT_IDS.analyticsRollups}/${SUBCOLLECTIONS.daily}/${date}`,
+
+  /** The daily-rollup collection, for the dashboard's date-range read. */
+  dailyAnalyticsCollection: (): string =>
+    `${COLLECTIONS.analytics}/${FIXED_DOCUMENT_IDS.analyticsRollups}/${SUBCOLLECTIONS.daily}`,
 } as const;
 
 /**

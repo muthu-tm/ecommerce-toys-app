@@ -16,13 +16,13 @@ Rules for this document:
 
 ## Summary
 
-|                |                                                |
-| -------------- | ---------------------------------------------- |
-| Tasks complete | **15 / 24**                                    |
-| Current phase  | Phase 6 — Commerce                             |
-| Current task   | Task 16 — Order placement, reservation, UPI QR |
-| Blocked        | Nothing in code; account-level actions pending |
-| Last updated   | 2026-09-09                                     |
+|                |                                                 |
+| -------------- | ----------------------------------------------- |
+| Tasks complete | **19 / 24**                                     |
+| Current phase  | Phase 6 — Commerce                              |
+| Current task   | Task 20 — Customer account and WhatsApp support |
+| Blocked        | Nothing in code; account-level actions pending  |
+| Last updated   | 2026-09-09                                      |
 
 **Outstanding account-level actions.** These need the owner's Google and GitHub accounts, so they are
 scripted and documented but not executed:
@@ -48,9 +48,7 @@ scripted and documented but not executed:
 | 4. Identity and notifications | 10–11 | Login, seeded admins, API service, navbar bells                | `[x]`  |
 | 5. Backoffice catalogue       | 12–14 | Products, media, variants, inventory, categories               | `[~]`  |
 
-<!-- Task 12 done; 13–14 remain -->
-
-| 6. Commerce | 15–19 | Cart, orders, UPI, verification, refunds, fulfilment | `[ ]` |
+| 6. Commerce | 15–19 | Cart, orders, UPI, verification, refunds, fulfilment | `[x]` |
 | 7. Account and social | 20–21 | Customer account, WhatsApp support, reviews | `[ ]` |
 | 8. Hardening and launch | 22–24 | Performance, SEO, a11y, security, cutover, launch | `[ ]` |
 
@@ -876,37 +874,306 @@ order, and a WhatsApp support link built from the configured number.
   read-modify-write in `@romp/data`, availability read straight from the inventory document because
   the server legitimately needs the count the customer-facing API hides.
 
-### `[ ]` Task 16 — Order placement, stock reservation, dynamic UPI QR
+### `[x]` Task 16 — Order placement, stock reservation, dynamic UPI QR
 
-- [ ] Server-recomputed totals; GST in basis points
-- [ ] Reservation and inventory decrement in **one transaction** so concurrent checkouts serialise
-- [ ] Sequential human-facing order number from `counters`, distinct from the random document ID
-- [ ] Per-order UPI QR encoding the **exact amount and order reference** — this is what makes
-      verification a two-field match rather than a judgement call
-- [ ] Idempotency key honoured on placement
+- [x] Server-recomputed totals; GST in basis points — placement and the quote both call the same pure
+      `computeOrderTotals` over the **live** variant prices, so a tampered client value has nowhere to
+      enter and the quote a customer saw cannot drift from the order they placed
+- [x] Reservation in **one transaction** so concurrent checkouts serialise — every line's inventory
+      document and the order-number counter are read and written in one Firestore transaction; the
+      one-document-per-variant oversell invariant makes N parallel checkouts for a single remaining
+      unit resolve to exactly one success (on-hand decrement is the payment commit, Task 17)
+- [x] Sequential human-facing order number from `counters`, distinct from the random document ID —
+      read-modify-write on `counters/orderHumanId` inside the same transaction (not `FieldValue.increment`,
+      because the value has to be read to build the `humanId` string), so the sequence has no gaps
+- [x] Per-order UPI QR encoding the **exact amount and order reference** — `buildUpiUri` mints the
+      intent string with the exact total and the order number; the confirmation page renders it as a
+      QR, which is what makes Task 17's manual verification a two-field match rather than a judgement call
+- [x] Idempotency key honoured on placement — `POST /v1/orders` requires an `Idempotency-Key` and
+      replays the original response for a repeated key, so a retry cannot double-reserve
 
-### `[ ]` Task 17 — Payment proof submission and the reservation sweeper
+**Demo.**
 
-- [ ] UTR + proof upload; proofs served as attachments with `nosniff`
-- [ ] `paymentRefGuards/{normalizedUtr}` created in the same transaction — **global** UTR uniqueness by
-      document existence, not by query
-- [ ] Scheduled sweeper releasing expired reservations, idempotent, ledger-writing
-- [ ] Backlog-age alert on non-execution
-- [ ] Concurrency tests: duplicate UTR, and two checkouts against one unit of stock
+| Claim                                                        | How to see it                                                                                                                                                                 |
+| ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Totals are recomputed server-side from live prices           | `apps/api/src/routes/checkout.ts` and `order-write.ts` both call `@romp/core`'s `computeOrderTotals`; the request carries no money. `packages/core` unit-tests the arithmetic |
+| N parallel checkouts for one unit yield exactly one order    | `pnpm --filter @romp/infra test` — `order-write` fires 5 parallel placements for 1 unit; exactly 1 fulfils, 4 raise `INSUFFICIENT_STOCK`, and `reserved` ends at 1            |
+| The whole placement commits together                         | Same suite — `api-orders` places an order and asserts the order, reservation, counter increment and cleared cart all landed                                                   |
+| A retry does not double-reserve                              | `api-orders` — placing twice with the same `Idempotency-Key` returns the same `orderId` and leaves `reserved` at 1                                                            |
+| The UPI QR carries the exact amount and order number         | `api-orders` asserts the returned `qrPayload` contains `cu=INR` and `tn={humanId}`; the storefront renders it with `qrcode.react` in `OrderConfirmation`                      |
+| The human order number is sequential and not the document ID | `formatOrderNumber` mints `RMP-1001` from the counter; the document ID is random, so a guessed number cannot address an order                                                 |
+| The GST rate is config, not hardcoded                        | `locale.gstRateBasisPoints` (romp 1800 = 18%) seeds `settings/checkout`; the order prefix is `brand.orderPrefix` (romp `RMP`, `_template` `EXA`)                              |
+| Checkout is reachable from the cart                          | `apps/storefront` — the cart page links to `/checkout`, which quotes the bag, places the order, and routes to `/orders/{id}`                                                  |
 
-### `[ ]` Task 18 — Admin payment verification and refunds
+**Notes.**
 
-- [ ] Verification queue, oldest-first
-- [ ] Exact-amount comparison; short payment routes to a partial path, never "close enough"
-- [ ] Immutable `events` audit with the actor uid
-- [ ] Refunds require the `owner` claim; destination pre-filled from the order's payment record
-- [ ] Adjustments recorded as entries so records reconcile with the bank statement
+- **Totals are server-authoritative, and the quote and the order share one function.** The pure
+  `computeOrderTotals` in `@romp/core` is called by the checkout-quote route and, again, inside the
+  placement transaction — both over the live variant prices, never the cart's display snapshots. So
+  the number a customer is quoted and the number the order records are computed the same way from the
+  same source; a client value has nowhere to enter. GST is applied to the **full taxable value**
+  (subtotal + gift wrap + shipping), the unambiguous invoice-value reading, since the spec does not
+  single out a narrower base.
+- **The transaction is the oversell control, not a check.** Placement reads every line's inventory
+  document and the counter, decides reservation and allocation purely, then writes the order, its
+  reservation, its audit event, the spine `order.created` event, the bumped `reserved`, the
+  incremented counter and the emptied cart — all in one Firestore transaction. Concurrent checkouts
+  serialise on the one-document-per-variant inventory record, so the emulator concurrency test's five
+  parallel placements for a single unit resolve to exactly one success. A refusal — empty cart, a
+  vanished variant, insufficient stock — throws having written nothing.
+- **Reservation bumps `reserved`; it does not move on-hand.** A reservation raises `inventory.reserved`
+  and leaves `onHandTotal` alone — the on-hand decrement is the payment commit (Task 17), because
+  stock is not gone until the money is confirmed. The oversell invariant still holds during the hold:
+  `available = onHandTotal − reserved`, checked in the transaction, is what blocks the second concurrent
+  checkout. This resolves the reservation half of Task 7's carried-forward write-paths row; commit,
+  release and restock remain Tasks 17–18.
+- **Idempotency is in place; its production store is not, deliberately.** `POST /v1/orders` requires
+  an `Idempotency-Key` and replays the original response for a repeated key through the
+  `IdempotencyStore` interface. The default implementation is in-memory, which is correct for a single
+  instance and for tests but misses across Cloud Functions instances; the Firestore-backed store the
+  interface already supports is the production implementation, carried forward. The mechanism —
+  reserve the key, run once, cache the response — is the same either way, so wiring the persisted store
+  is additive.
+- **The confirmation page renders the QR from the payload, which is the source of truth.** The server
+  mints the UPI intent string with the exact total and the order number; the page draws a QR from
+  _that string_, so the render is a view of the payload, not a second computation that could disagree.
+  `qrcode.react` (`QRCodeSVG`) is a new storefront dependency — no QR library existed — pinned exactly
+  and SVG-based so it renders without a canvas.
+- **The checkout UI degrades to the states its upstream pieces leave it in.** Client auth (Task 20)
+  and address creation do not exist yet, so the page reads the customer's saved addresses through the
+  client SDK (a client-READ the rules already allow) and attaches the Firebase ID token to the API
+  call; a signed-out visitor is asked to sign in and a customer with no saved address is asked to add
+  one. These are the real not-yet-wired states, shown honestly, not error screens.
 
-### `[ ]` Task 19 — Admin orders, fulfilment, dashboard
+### `[x]` Task 17 — Payment proof submission and the reservation sweeper
 
-- [ ] Order list with filters; state machine transitions enforced in `@romp/core`
-- [ ] Fulfilment, dispatch, delivery; customer-safe event subset on the order timeline
-- [ ] Dashboard from `analytics/daily` rollups, not live aggregation queries
+- [x] UTR + proof submission — `POST /v1/orders/:id/payment-proof` records the reference and an
+      optional already-uploaded proof path, moving the order into `pending_verification`. The proof
+      image is uploaded by the client to its own `payment-proofs/{orderId}/{uid}/…` prefix (which the
+      storage rules gate to the owner), and the API validates the submitted path against that prefix.
+      _(nosniff/attachment serving of the stored proof is a carried-forward refinement — see below)_
+- [x] `paymentRefGuards/{normalisedUtr}` created in the **same transaction** — the document ID is the
+      normalised UTR, so the second order to quote it fails on `create` against an existing document,
+      not on a query that could race. This is the whole of `DUPLICATE_PAYMENT_REFERENCE`.
+- [x] Scheduled sweeper releasing expired reservations, idempotent — `reservationSweeper` runs every
+      five minutes, lists the active-and-overdue reservations (index-backed) and releases each in its
+      own transaction, returning `reserved` to available and expiring the order. Re-running is a
+      no-op, so the scheduler's at-least-once delivery is safe.
+- [x] Backlog-age alert on **non-execution** — the sweep measures the age of the oldest reservation
+      still overdue after its pass and logs at `error` past the threshold; a sweeper that stops
+      running stops emitting its healthy heartbeat, which a log-absence policy catches. Age, not error
+      rate, because a stalled sweeper throws nothing.
+- [x] Concurrency tests: two submissions of one UTR resolve to exactly one claim (and one
+      `DUPLICATE_PAYMENT_REFERENCE`) with exactly one guard document; two checkouts against one unit
+      of stock resolve to one order (Task 16's test, still green).
+
+**Configuration (unchanged this task).** `commerce.reservationTtlMinutes` (romp `30`) sets how long a
+reservation holds stock; the sweep runs `every 5 minutes` and alerts when a reservation is still
+overdue-and-active more than ten minutes (two cycles) past expiry.
+
+**Demo.**
+
+| Claim                                                      | How to see it                                                                                                                                                                                                    |
+| ---------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| One UTR cannot be claimed twice                            | `pnpm --filter @romp/infra test` — `payment-write` fires two submissions of the same reference; exactly one succeeds, one raises `DUPLICATE_PAYMENT_REFERENCE`, and one `paymentRefGuards/{utr}` document exists |
+| A submission moves the order into the verification queue   | `api-orders` — submitting a reference returns `pending_verification` and the order reads back with the normalised `upiRef`                                                                                       |
+| The reference is normalised before it is stored or claimed | `UtrSchema` strips whitespace and uppercases; `payment-write` uses the normalised value as both the stored `upiRef` and the guard document ID                                                                    |
+| The sweeper releases an expired hold and expires its order | `reservation-sweeper` — a past-expiry reservation is released: order `expired`, `reserved` returned to available, on-hand unchanged, an `order.expired` event appended                                           |
+| The sweep is idempotent                                    | Same suite — a second pass over an already-released reservation is a no-op                                                                                                                                       |
+| The sweeper only touches pre-payment holds                 | `reservation-write` unit test — an overdue reservation whose order moved to `pending_verification` is skipped, not expired                                                                                       |
+| The customer can pay and submit from the order page        | `apps/storefront` — the confirmation page shows the UPI QR and a reference form while awaiting payment, an under-review message once submitted, and a rejection reason with a resubmit form when rejected        |
+
+**Notes.**
+
+- **The guard is the mechanism, not a check.** Global UTR uniqueness is a `create` against
+  `paymentRefGuards/{normalisedUtr}` inside the submission transaction, so a duplicate fails on the
+  document already existing rather than on a "is this reference taken?" query that two concurrent
+  submissions could both pass. Normalisation is load-bearing: `1234 5678` and `12345678` are the same
+  claim, so both the stored reference and the guard ID are the whitespace-stripped, uppercased form.
+  The `isAlreadyExists` recogniser this relies on was triplicated (identity, category, payment) and is
+  now one tested helper in `@romp/data`.
+- **A release moves the hold, not on-hand, so it writes no inventory-ledger entry.** A reservation
+  raised `inventory.reserved` and never touched on-hand (Task 16); releasing it lowers `reserved`
+  back, returning units to _available_ without on-hand moving. The inventory ledger records on-hand
+  movement and reconciles to `inventory.stock` (DATA_MODEL.md), so a ledger delta on a pure release
+  would break that reconciliation — the on-hand decrement is the payment commit's `order_committed`
+  entry (Task 18). The release is audited on the append-only event spine (`order.expired`) and the
+  reservation's own `released`/`resolvedAt`, which is where a pre-payment expiry belongs. This resolves
+  the release half of Task 7's carried-forward write-paths row; commit and restock remain Task 18.
+- **The sweeper respects an order that moved under it.** Between listing an overdue reservation and
+  releasing it, the customer may submit proof — moving the order to `pending_verification`, which is
+  not a legal transition to `expired`. The release reads the order inside its transaction and skips
+  (as a no-op) any order no longer in a pre-payment state, so a race between the sweeper and a
+  last-second payment never expires an order a customer just paid for.
+- **The non-execution alert is folded into the sweep, deliberately.** The dispatcher needs a separate
+  scheduled watcher because it is trigger-driven; the sweeper _is_ the scheduled job, so it measures
+  its own residual backlog each run and logs a heartbeat. A growing backlog means the pass could not
+  keep up; a missing heartbeat means it stopped running. Both are age-of-oldest signals a policy
+  watches, which is the only kind that catches a component that fails by going silent.
+- **The submission is guarded like placement.** It requires a signed-in owner, a rate limit
+  (`paymentProof`), and a required idempotency key, because a retry would otherwise double-claim a
+  reference. A resubmission after a rejection clears the prior rejection fields so the record reads as
+  a fresh claim awaiting verification, and the order-status machine allows `payment_rejected →
+pending_verification` precisely so a mistyped UTR does not force a new order that would re-reserve
+  stock the customer already holds.
+
+### `[x]` Task 18 — Admin payment verification and refunds
+
+- [x] Verification queue, oldest-first — `GET /v1/admin/orders` returns the `pending_verification`
+      orders by `createdAt` ascending, so the order whose reservation is closest to expiring is seen
+      first (`listVerificationQueue`, already index-backed).
+- [x] Exact-amount comparison; a short payment never "close enough" — `verify-payment` carries the
+      amount the admin read from the bank, compared to `order.amounts.totalMinor` to the paise. A
+      mismatch is a `PAYMENT_AMOUNT_MISMATCH` carrying both figures; only an exact match reaches
+      `paid` and commits stock. There is no `partially_paid` state to fall into by approximation.
+- [x] Immutable `events` audit with the actor uid — every verify, reject and refund writes a per-order
+      event **and** a spine event in the same transaction as the state change, each carrying the
+      acting admin's uid (`order.payment_verified` / `order.payment_rejected` / `refund.issued`).
+- [x] Refunds require the `owner` claim — `issueRefund` calls `requireOwnerRole`, so a staff operator
+      is refused (as a 404, not a 403, so the action is not disclosed); verifying and rejecting are
+      staff actions. The refund destination is the customer's contact on the order; the operator
+      records the outward UPI reference of the transfer they make.
+- [x] Adjustments recorded as entries so records reconcile with the bank — refunds are append-only
+      (a wrong amount is corrected by a second, adjusting refund, never an edit), and the commit and
+      restock write signed `inventoryLedger` entries (`order_committed` on verify, `refund_restock`
+      on a restocking refund), so both the money trail and the stock ledger reconcile against the
+      statement.
+
+**Configuration (unchanged this task).** A new rate-limit key `adminOrderWrite` (60/minute) bounds the
+money actions — tighter than the catalogue-write ceiling, because each one settles or moves money.
+
+**Demo.**
+
+| Claim                                                         | How to see it                                                                                                                                                            |
+| ------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| An exact-amount verify commits stock and marks the order paid | `pnpm --filter @romp/infra test` — `api-admin-orders`: verify with the exact total returns `paid`, on-hand falls 10→8, reserved 2→0, the reservation is `committed`      |
+| A short payment is refused, never accepted                    | Same suite — verify with a lower amount returns `409 PAYMENT_AMOUNT_MISMATCH`; the order stays `pending_verification` and no stock moves                                 |
+| Commit writes an `order_committed` ledger entry               | `verification-write` — a negative-delta `order_committed` entry per (variant, warehouse), so the ledger reconciles to `inventory.stock`                                  |
+| A reject records the reason and keeps stock reserved          | `api-admin-orders` — reject returns `payment_rejected` with the reason; the reservation stays `active` so the customer can resubmit                                      |
+| Refunds are owner-only                                        | `api-admin-orders` — an owner token issues a refund (200); a staff token is refused (404). `issueRefund` calls `requireOwnerRole` before any read                        |
+| A refund raises the running total and restocks                | `refund-write` — a full refund moves the order to `refunded`, `refundedMinor` reaches the total, and a restocking refund writes a positive `refund_restock` ledger entry |
+| Every settlement is attributable                              | `verification-write` / `refund-write` — the acting admin's uid is on the order event and the spine event; `events.test` enforces the audit-actor field on the schema     |
+
+**Notes.**
+
+- **Exact means exact, and it is the whole anti-fraud posture.** A manual UPI payment has no gateway
+  to confirm the amount, so the admin reads the settled figure from the bank and the server compares
+  it to `order.amounts.totalMinor` in integer paise (`Money` is integer paise precisely so this is
+  exact, not floating). A mismatch — short or over — is a typed `PAYMENT_AMOUNT_MISMATCH` carrying
+  both figures, so the admin acts on the real difference. **There is no `partially_paid` order state**
+  and none was added: the status machine has no such node, and "route to a partial path, never close
+  enough" (`SECURITY.md`) is enforced as "only an exact amount reaches `paid`". A short payment is
+  handled by rejecting it (the customer tops up and resubmits); an overpayment, by verifying once the
+  amounts match and refunding any excess as a separate `overpayment` refund.
+- **Verify is the commit — where reserved stock finally leaves the shelf.** Placement raised
+  `reserved`; the sweeper's release lowered it back; verify does the third thing — it lowers on-hand
+  _and_ `reserved` together for the same units, writes the `order_committed` ledger entry that moves
+  on-hand (the ledger reconciles to `inventory.stock`, DATA_MODEL.md), and resolves the reservation
+  `active → committed`. The `applyStockDelta` oversell guard bounds on-hand against `reserved`, so the
+  commit passes the _post-commit_ reserved as the bound — otherwise it would see the reservation still
+  holding units it is in the middle of releasing and refuse a legitimate commit. This resolves the
+  commit and restock halves of Task 7's carried-forward write-paths row; only the fulfilment-side
+  transitions (pack/ship/deliver) remain, and those are Task 19.
+- **Verify is idempotent through the state machine, not an idempotency key.** A double-click on
+  verify finds the order already `paid`, and `pending_verification → paid` is the only legal edge, so
+  the second call is refused by `assertTransition` rather than committing stock twice. That makes an
+  idempotency key unnecessary here — the transition guard is the idempotency mechanism.
+- **Refunds are owner-only and refused as a 404.** Moving money outward is the one action gated on the
+  `owner` claim rather than `staff` (`SECURITY.md`): a careless staff account marking orders paid is
+  bounded by per-order value, but one issuing refunds is not. `requireOwnerRole` refuses a staff
+  caller with a 404 — the same non-disclosure posture as ownership checks — before any document is
+  read. This is the first repository to consume `requireOwnerRole`, which existed and was tested but
+  unused until now.
+- **"Destination pre-filled from the payment record" is the customer's contact, not the inward UTR.**
+  The order's `payment.upiRef` is the customer's _inward_ reference; there is no stored customer VPA
+  and the QR encodes the merchant's. So a refund is reached through the customer's `contact` on the
+  order, and the operator records the _outward_ reference of the transfer they make. The refund's
+  `outwardUpiRef` is nullable because the record is created when the decision is made and the transfer
+  follows.
+
+### `[x]` Task 19 — Admin orders, fulfilment, dashboard
+
+- [x] Order list with filters and search — `GET /v1/admin/orders` is now a filterable, cursor-paged
+      read (`listOrders`): newest first, filterable by payment status **or** fulfilment status, or
+      searched by the customer-facing `humanId`. The two filters are alternatives, not a matrix, so
+      every query stays index-backed; a `humanId` short-circuits to the one matching order.
+- [x] Fulfilment state machine, enforced in the repository — `advanceFulfilment` (pack / ship /
+      deliver / hold / take-off-hold) asserts every move against `fulfilmentStatusMachine`, which is
+      **independent of payment status**. The one cross-machine rule the fulfilment machine cannot
+      express — "an order cannot be packed until it is paid" — is a guard in the handler.
+- [x] Customer-safe event subset on the order timeline — pack, ship and deliver each append a
+      per-order event **and** a spine event (`order.packed` / `order.shipped` / `order.delivered`),
+      which the dispatcher projects into a customer notification; `on_hold` is internal and announces
+      nothing. `order.shipped` carries the carrier and tracking number the copy interpolates.
+- [x] Order cancellation with the right stock undo — `cancelOrder` branches on how far the order got:
+      a pre-payment cancel releases the reservation and lowers `reserved` (no ledger entry, on-hand
+      never moved); a paid cancel optionally restocks on-hand with an `order_cancelled` ledger entry.
+      Both move the order **and** its fulfilment to `cancelled`, and record a customer-facing reason.
+- [x] Dashboard from `analytics/daily` rollups, not live aggregation — a scheduled `analyticsDailyRollup`
+      Function rolls each store-local day into one `analytics/rollups/daily/{date}` document
+      (`computeDailyRollup`); the dashboard reads a range of those (`listDailyAnalytics`), so its cost
+      is the range, not the order volume.
+- [x] Admin UI — an order list (filters, search, pagination), an order detail with the audit timeline
+      and fulfilment/cancel controls, and a dashboard. Server-read screens with the write controls as
+      inert client islands until operator sign-in (Task 20), the Task 12 precedent.
+
+**Configuration.** The store's `locale.timezone` (`Asia/Kolkata` for ROMP) is what decides which
+calendar day an order belongs to in the rollup — a late-evening Bengaluru sale rolls up to that date,
+not the UTC one. The rollup Function is scheduled `30 0 * * *` **in that timezone**, so it runs just
+after the store's own midnight and rolls up the day that just ended. The `adminOrderWrite` rate-limit
+key (60/minute, from Task 18) is reused for the fulfilment and cancel writes.
+
+**Demo.**
+
+| Claim                                                | How to see it                                                                                                                                                                    |
+| ---------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| The order list filters, searches and pages           | `pnpm --filter @romp/infra test` — `admin-order-list`: a cursor walks the whole set newest-first with no gaps or repeats; a status filter narrows; a `humanId` returns one order |
+| A paid order packs, ships and delivers               | `api-admin-orders` — pack → ship (with carrier + tracking) → deliver each return 200 and append the matching spine event                                                         |
+| An unpaid order cannot be packed                     | `api-admin-orders` — packing a `pending_verification` order returns `409 INVALID_STATE_TRANSITION` (the cross-machine guard)                                                     |
+| Cancel releases held stock, or restocks a paid order | `cancel-write` — a held cancel lowers `reserved` and releases the reservation with no ledger entry; a paid restocking cancel raises on-hand and writes `order_cancelled`         |
+| A cancelled order is cancelled on both machines      | `api-admin-orders` — cancel returns an order whose `status` and `fulfilment.status` are both `cancelled`                                                                         |
+| The rollup buckets by the store's day, not UTC       | `@romp/core` `rollup.test` — `2026-03-01` in `Asia/Kolkata` spans `2026-02-28T18:30Z`–`2026-03-01T18:30Z`; `analytics-write` proves a previous-local-day order is excluded       |
+| The dashboard reads rollups, never scans orders      | `analytics-write` — `listDailyAnalytics` reads a date range of rollup documents; the live scan happens once, in the scheduled `computeDailyRollup`                               |
+| The admin screens render real data                   | `pnpm --filter @romp/admin test` — the order list, detail timeline and dashboard render from fixtures; the fulfilment controls are offered only for legal moves                  |
+
+**Notes.**
+
+- **Payment and fulfilment are two machines, and the one rule that spans them is a handler guard.**
+  A paid order can be packed, shipped, held, or cancelled; a delivered order can still be refunded.
+  Collapsing the two into one status enum would invent composite states like
+  `paid_but_on_hold_and_partially_refunded`. So `advanceFulfilment` asserts against
+  `fulfilmentStatusMachine` alone — and the only thing that machine cannot know, "is the money in",
+  is checked once, explicitly, at the point the two meet: packing requires `order.status === 'paid'`.
+  The plan's phrase "enforced in `@romp/core`" is where the machines _live_ (`@romp/contracts/domain`);
+  the _enforcement_ is `assertTransition` (`@romp/observability`) called inside the `@romp/data`
+  repositories, which is where every other write in the platform enforces its transitions.
+- **Cancellation is two different undos, and conflating them corrupts stock.** Before payment, the
+  order only ever _reserved_ stock, so cancelling lowers `reserved` and releases the reservation, and
+  writes **no** inventory-ledger entry — the ledger records on-hand movement and there was none, the
+  exact reasoning the sweeper's release follows. After payment, verify already committed the stock
+  (on-hand fell), so cancelling _restocks_ — raising on-hand and writing an `order_cancelled` ledger
+  entry, the mirror of the commit's `order_committed` — but only if the goods came back sellable, so
+  `restock` is the operator's call. Either way both machines move to `cancelled`, because a cancelled
+  order is neither awaiting anything nor going to ship. Refunding the money is the separate,
+  owner-only `issueRefund`; a cancel does not move money.
+- **The dashboard never scans `orders`, and a "day" is the store's day.** A busy store's order
+  collection is the last thing to aggregate on every dashboard load, so the numbers are a scheduled
+  rollup and the dashboard reads a bounded range of small documents. The window is the store-local
+  day, not a UTC day (`zonedDayWindow`, via the runtime's own tz database so India's +05:30 half-hour
+  offset needs no table), and it is half-open so a midnight order is counted once. The rollup document
+  is keyed by its date, so a re-run — which the scheduler will, at least once — overwrites rather than
+  duplicates: it is a materialised view, safe to recompute.
+- **The order-list filters are deliberately exclusive, for index safety.** `status` and
+  `fulfilmentStatus` are offered as alternatives rather than a combinable matrix, because combining
+  them would need a composite index the query plan does not carry. The repository applies at most one
+  (payment status wins if both arrive), and the list orders by `createdAt` **and** the document ID —
+  the ID tiebreaker is what makes `startAfter` take the two values Firestore's cursor needs and keeps
+  paging total, so two orders at the same instant cannot straddle a page boundary.
+- **The admin write controls are built and inert, exactly as Task 12 established.** The fulfilment,
+  cancel and refund controls render and offer only the legal moves, but every write goes through the
+  API client, whose `operatorToken()` returns null until client auth lands — so a click surfaces
+  "Sign in as a staff member" rather than silently doing nothing. The screens are exercisable
+  end-to-end after Task 20 wires operator sign-in; the read side is fully live today.
 
 ---
 
@@ -964,48 +1231,51 @@ order, and a WhatsApp support link built from the configured number.
 Work discovered mid-build that belongs to a later task. Empty is a good sign; a long list means tasks
 are being called done early.
 
-| Item                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Raised in | Belongs to   |
-| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ------------ |
-| Resolve remaining `TBD (Task N)` placeholders in `RUNBOOKS.md` (Task 13's reconciliation TBD resolved; Task 11's replay entry hands to 24)                                                                                                                                                                                                                                                                                                                   | Task 1    | 17, 23, 24   |
-| Wire the alert inventory with real thresholds                                                                                                                                                                                                                                                                                                                                                                                                                | Task 1    | 24           |
-| Automate PII deletion (manual procedure in v1.0)                                                                                                                                                                                                                                                                                                                                                                                                             | Task 1    | Roadmap      |
-| CI grep for secrets in the built client bundle                                                                                                                                                                                                                                                                                                                                                                                                               | Task 1    | 23           |
-| ~~Add Functions + Pub/Sub emulators to `firebase.json`~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                                   | Task 2    | ✓ 10         |
-| Add `apphosting` and `functions` to the deploy targets                                                                                                                                                                                                                                                                                                                                                                                                       | Task 2    | 5, 10        |
-| CI check for docs link/anchor regressions (done once by hand in Task 1)                                                                                                                                                                                                                                                                                                                                                                                      | Task 2    | 22           |
-| Sentry adapters for the `ErrorReporter` port (port and no-op exist)                                                                                                                                                                                                                                                                                                                                                                                          | Task 3    | 5, 10        |
-| ~~Emit `openapi.json` as an artefact and add the CI staleness check~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                      | Task 3    | ✓ 10         |
-| Apply `createAppConfig({ brandNames })` to each app's ESLint config                                                                                                                                                                                                                                                                                                                                                                                          | Task 4    | 5            |
-| Replace the placeholder OG fallback artwork with real 1200x630 images                                                                                                                                                                                                                                                                                                                                                                                        | Task 4    | 22           |
-| Create the App Hosting backends and run the first dev deploy                                                                                                                                                                                                                                                                                                                                                                                                 | Task 5    | Owner action |
-| ~~Admin app shell (`apps/admin`), reusing `@romp/ui`~~ — built in Task 12                                                                                                                                                                                                                                                                                                                                                                                    | Task 5    | ✓ 12         |
-| ~~Wire the notification bell to live data~~ — bell + hook built in Task 11; ~~cart count~~ — header `CartBadge` reads the cart count in Task 15                                                                                                                                                                                                                                                                                                              | Task 5    | ✓ 11, ✓ 15   |
-| Give the notification bell a signed-in uid (it renders signed-out until client auth exists)                                                                                                                                                                                                                                                                                                                                                                  | Task 11   | 20           |
-| WhatsApp send step reading the notification documents (the in-app write ships; the send is a roadmap seam)                                                                                                                                                                                                                                                                                                                                                   | Task 11   | Roadmap      |
-| Lighthouse CI budgets against a deployed preview                                                                                                                                                                                                                                                                                                                                                                                                             | Task 5    | 22           |
-| Deploy the indexes and TTL policies to a real project (`fieldOverrides` with `ttl: true` is a no-op on the emulator)                                                                                                                                                                                                                                                                                                                                         | Task 6    | Owner action |
-| Denormalise `inStock` to a top-level product field, so the in-stock filter stops running in memory. **Reviewed in Task 13, kept deferred:** `variantSummary[].inStock` is already maintained on variant writes and the in-memory filter is correct if occasionally short; a top-level boolean means every inventory transaction touches the product doc too. Lands with the perf pass unless the filter's short-page behaviour becomes a real problem first. | Task 7    | 22           |
-| Denormalise `isLowStock`, so the low-stock report stops scanning a bounded window. **Reviewed in Task 13, kept deferred:** `listLowStock` scans a bounded window ordered by `onHandTotal`, which is predictable and cheap at v1.0 catalogue sizes; the boolean would add a write to every stock movement. Revisit when the report matters more than the extra write.                                                                                         | Task 7    | 24           |
-| Write paths — transactions for reservation, commit, release and restock                                                                                                                                                                                                                                                                                                                                                                                      | Task 7    | 16, 17, 18   |
-| ~~Reconciliation runbook 4 can now call `reconcileVariantStock`; the runbook still says `TBD (Task 13)`~~ — `reconcile:variant` script built and runbook 4 rewritten in Task 13                                                                                                                                                                                                                                                                              | Task 7    | ✓ 13         |
-| ~~`apps/api` must pass `allowedDataImports: ['firebase-admin/auth']`~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                     | Task 7    | ✓ 10         |
-| ~~Product media upload pipeline~~ — upload + magic-byte finalize + quarantine built in Task 12                                                                                                                                                                                                                                                                                                                                                               | Task 6    | ✓ 12         |
-| ~~`pnpm seed:admins` for seeded owner and staff accounts~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                                 | Task 6    | ✓ 10         |
-| ~~Maintain `categories.productCount` on product writes — the seed computes it once, nothing keeps it current yet~~ — the `categoryProductCounter` trigger maintains it (Task 14), with `reconcile:categories` as the drift path                                                                                                                                                                                                                              | Task 6    | ✓ 14         |
-| ~~Ledger-to-stock reconciliation script; the invariant is asserted in tests but there is no operational tool~~ — `pnpm --filter @romp/data reconcile:variant` built in Task 13                                                                                                                                                                                                                                                                               | Task 6    | ✓ 13         |
-| Point per-page canonical URLs at the deploy origin, plus a sitemap                                                                                                                                                                                                                                                                                                                                                                                           | Task 8    | 22           |
-| Cover `firebase.ts` credential paths against the emulator, so it is not coverage-excluded forever                                                                                                                                                                                                                                                                                                                                                            | Task 8    | 24           |
-| A search box wired to `suggest()` (the read exists; there is no input yet)                                                                                                                                                                                                                                                                                                                                                                                   | Task 8    | 22           |
-| Per-variant `Offer` in the PDP JSON-LD (v1.0 emits one product-level offer at the "from" price)                                                                                                                                                                                                                                                                                                                                                              | Task 9    | Roadmap      |
-| Real per-product OG images once the media pipeline produces them (the layout OG fallback applies until then)                                                                                                                                                                                                                                                                                                                                                 | Task 9    | 12, 22       |
-| Wire add-to-cart on the PDP to the cart API (the button and its states ship now; the behaviour is Task 15)                                                                                                                                                                                                                                                                                                                                                   | Task 9    | 15           |
-| Firestore-backed idempotency store (the in-memory one ships; the persisted one is needed for orders)                                                                                                                                                                                                                                                                                                                                                         | Task 10   | 16           |
-| Server-side current-password verification via the Identity Toolkit REST endpoint (needs the store Web API key)                                                                                                                                                                                                                                                                                                                                               | Task 10   | 20           |
-| Wire the admin's write controls to a signed-in operator token (they render signed-out until client auth exists)                                                                                                                                                                                                                                                                                                                                              | Task 12   | 20           |
-| Wire `deps.revalidate` in the API bootstrap to the storefront's revalidation endpoint (unset in v1.0; the hourly ISR floor is the backstop)                                                                                                                                                                                                                                                                                                                  | Task 12   | Owner action |
-| Variant edit/deactivate and media reorder/delete in the admin UI (create + list ship; edit-in-place is a refinement)                                                                                                                                                                                                                                                                                                                                         | Task 12   | Roadmap      |
-| Backfill the Resize extension's derivative dimensions onto the media entry, so `blurhash`/exact size come from the pipeline rather than staying a 1×1 placeholder                                                                                                                                                                                                                                                                                            | Task 12   | Roadmap      |
-| Enable the `functions` deploy target + finalise the deployable `package.json` `main` (first API deploy)                                                                                                                                                                                                                                                                                                                                                      | Task 10   | Owner action |
+| Item                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Raised in | Belongs to       |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------- | ---------------- |
+| Resolve remaining `TBD (Task N)` placeholders in `RUNBOOKS.md` (Task 13's reconciliation TBD resolved; Task 11's replay entry hands to 24)                                                                                                                                                                                                                                                                                                                   | Task 1    | 17, 23, 24       |
+| Wire the alert inventory with real thresholds                                                                                                                                                                                                                                                                                                                                                                                                                | Task 1    | 24               |
+| Automate PII deletion (manual procedure in v1.0)                                                                                                                                                                                                                                                                                                                                                                                                             | Task 1    | Roadmap          |
+| CI grep for secrets in the built client bundle                                                                                                                                                                                                                                                                                                                                                                                                               | Task 1    | 23               |
+| ~~Add Functions + Pub/Sub emulators to `firebase.json`~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                                   | Task 2    | ✓ 10             |
+| Add `apphosting` and `functions` to the deploy targets                                                                                                                                                                                                                                                                                                                                                                                                       | Task 2    | 5, 10            |
+| CI check for docs link/anchor regressions (done once by hand in Task 1)                                                                                                                                                                                                                                                                                                                                                                                      | Task 2    | 22               |
+| Sentry adapters for the `ErrorReporter` port (port and no-op exist)                                                                                                                                                                                                                                                                                                                                                                                          | Task 3    | 5, 10            |
+| ~~Emit `openapi.json` as an artefact and add the CI staleness check~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                      | Task 3    | ✓ 10             |
+| Apply `createAppConfig({ brandNames })` to each app's ESLint config                                                                                                                                                                                                                                                                                                                                                                                          | Task 4    | 5                |
+| Replace the placeholder OG fallback artwork with real 1200x630 images                                                                                                                                                                                                                                                                                                                                                                                        | Task 4    | 22               |
+| Create the App Hosting backends and run the first dev deploy                                                                                                                                                                                                                                                                                                                                                                                                 | Task 5    | Owner action     |
+| ~~Admin app shell (`apps/admin`), reusing `@romp/ui`~~ — built in Task 12                                                                                                                                                                                                                                                                                                                                                                                    | Task 5    | ✓ 12             |
+| ~~Wire the notification bell to live data~~ — bell + hook built in Task 11; ~~cart count~~ — header `CartBadge` reads the cart count in Task 15                                                                                                                                                                                                                                                                                                              | Task 5    | ✓ 11, ✓ 15       |
+| Give the notification bell a signed-in uid (it renders signed-out until client auth exists)                                                                                                                                                                                                                                                                                                                                                                  | Task 11   | 20               |
+| WhatsApp send step reading the notification documents (the in-app write ships; the send is a roadmap seam)                                                                                                                                                                                                                                                                                                                                                   | Task 11   | Roadmap          |
+| Lighthouse CI budgets against a deployed preview                                                                                                                                                                                                                                                                                                                                                                                                             | Task 5    | 22               |
+| Deploy the indexes and TTL policies to a real project (`fieldOverrides` with `ttl: true` is a no-op on the emulator)                                                                                                                                                                                                                                                                                                                                         | Task 6    | Owner action     |
+| Denormalise `inStock` to a top-level product field, so the in-stock filter stops running in memory. **Reviewed in Task 13, kept deferred:** `variantSummary[].inStock` is already maintained on variant writes and the in-memory filter is correct if occasionally short; a top-level boolean means every inventory transaction touches the product doc too. Lands with the perf pass unless the filter's short-page behaviour becomes a real problem first. | Task 7    | 22               |
+| Denormalise `isLowStock`, so the low-stock report stops scanning a bounded window. **Reviewed in Task 13, kept deferred:** `listLowStock` scans a bounded window ordered by `onHandTotal`, which is predictable and cheap at v1.0 catalogue sizes; the boolean would add a write to every stock movement. Revisit when the report matters more than the extra write.                                                                                         | Task 7    | 24               |
+| ~~Write paths — transactions for reservation, commit, release and restock~~ — reservation (`reserveAndPlaceOrder`, Task 16), release (`releaseReservation`/sweeper, Task 17), commit (`verifyPayment`, Task 18) and restock (`issueRefund`, Task 18) all built                                                                                                                                                                                               | Task 7    | ✓ 16, ✓ 17, ✓ 18 |
+| ~~Reconciliation runbook 4 can now call `reconcileVariantStock`; the runbook still says `TBD (Task 13)`~~ — `reconcile:variant` script built and runbook 4 rewritten in Task 13                                                                                                                                                                                                                                                                              | Task 7    | ✓ 13             |
+| ~~`apps/api` must pass `allowedDataImports: ['firebase-admin/auth']`~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                     | Task 7    | ✓ 10             |
+| ~~Product media upload pipeline~~ — upload + magic-byte finalize + quarantine built in Task 12                                                                                                                                                                                                                                                                                                                                                               | Task 6    | ✓ 12             |
+| ~~`pnpm seed:admins` for seeded owner and staff accounts~~ — done in Task 10                                                                                                                                                                                                                                                                                                                                                                                 | Task 6    | ✓ 10             |
+| ~~Maintain `categories.productCount` on product writes — the seed computes it once, nothing keeps it current yet~~ — the `categoryProductCounter` trigger maintains it (Task 14), with `reconcile:categories` as the drift path                                                                                                                                                                                                                              | Task 6    | ✓ 14             |
+| ~~Ledger-to-stock reconciliation script; the invariant is asserted in tests but there is no operational tool~~ — `pnpm --filter @romp/data reconcile:variant` built in Task 13                                                                                                                                                                                                                                                                               | Task 6    | ✓ 13             |
+| Point per-page canonical URLs at the deploy origin, plus a sitemap                                                                                                                                                                                                                                                                                                                                                                                           | Task 8    | 22               |
+| Cover `firebase.ts` credential paths against the emulator, so it is not coverage-excluded forever                                                                                                                                                                                                                                                                                                                                                            | Task 8    | 24               |
+| A search box wired to `suggest()` (the read exists; there is no input yet)                                                                                                                                                                                                                                                                                                                                                                                   | Task 8    | 22               |
+| Per-variant `Offer` in the PDP JSON-LD (v1.0 emits one product-level offer at the "from" price)                                                                                                                                                                                                                                                                                                                                                              | Task 9    | Roadmap          |
+| Real per-product OG images once the media pipeline produces them (the layout OG fallback applies until then)                                                                                                                                                                                                                                                                                                                                                 | Task 9    | 12, 22           |
+| Wire add-to-cart on the PDP to the cart API (the button and its states ship now; the behaviour is Task 15)                                                                                                                                                                                                                                                                                                                                                   | Task 9    | 15               |
+| Firestore-backed idempotency store. **Task 16 wired order placement to the `IdempotencyStore` interface** but kept the in-memory default; the persisted store (needed for cross-instance replay on Cloud Functions) is still to build and wire in `bootstrap.ts`                                                                                                                                                                                             | Task 10   | 17               |
+| Server-side current-password verification via the Identity Toolkit REST endpoint (needs the store Web API key)                                                                                                                                                                                                                                                                                                                                               | Task 10   | 20               |
+| Wire the admin's write controls to a signed-in operator token (they render signed-out until client auth exists)                                                                                                                                                                                                                                                                                                                                              | Task 12   | 20               |
+| Wire `deps.revalidate` in the API bootstrap to the storefront's revalidation endpoint (unset in v1.0; the hourly ISR floor is the backstop)                                                                                                                                                                                                                                                                                                                  | Task 12   | Owner action     |
+| Variant edit/deactivate and media reorder/delete in the admin UI (create + list ship; edit-in-place is a refinement)                                                                                                                                                                                                                                                                                                                                         | Task 12   | Roadmap          |
+| Backfill the Resize extension's derivative dimensions onto the media entry, so `blurhash`/exact size come from the pipeline rather than staying a 1×1 placeholder                                                                                                                                                                                                                                                                                            | Task 12   | Roadmap          |
+| Enable the `functions` deploy target + finalise the deployable `package.json` `main` (first API deploy)                                                                                                                                                                                                                                                                                                                                                      | Task 10   | Owner action     |
+| Serve payment proofs with `Content-Disposition: attachment` + `X-Content-Type-Options: nosniff` (documented in `storage.rules`; the submission + owner-gated storage path ship in Task 17, the hardened serving route does not)                                                                                                                                                                                                                              | Task 17   | 18               |
+| Magic-byte finalize/quarantine for uploaded payment proofs (product media has one via `mediaFinalizer`; `parseProductMediaPath` ignores the `payment-proofs/…` prefix, so a proof's declared type is not yet re-derived from its bytes)                                                                                                                                                                                                                      | Task 17   | 18               |
+| Wire the screenshot upload in the storefront proof form to the client Storage SDK (`payment-proofs/{orderId}/{uid}/…`); the contract + API accept a `screenshotPath`, but the UI submits UTR-only in v1.0                                                                                                                                                                                                                                                    | Task 17   | 20               |
 
 ## Deviations from the plan
 
@@ -1095,6 +1365,21 @@ are being called done early.
 | 2026-09-09 | 15   | The cart cookie name is brand-neutral (`__cart_id`), not prefixed with the store name                                  | A `romp_`-prefixed name tripped the `no-hardcoded-brand` lint, correctly: a cookie name baked with one store's brand ships in every other store's responses. The cookie is a technical identifier, not user-facing copy, so a neutral name is right — a second store ships the same cookie with no leak.                                                                                                                                                                                                                                                                                                                                                                  |
 | 2026-09-09 | 15   | The cart write repo is customer-owned (a `CartRef`), the first repo not gated on `requireStaff`                        | Catalogue/category/inventory writes are staff-only; a cart belongs to whoever holds it — a signed-in customer by uid or a guest by cookie ID. So the repo takes a `CartRef` the route resolves rather than a staff caller, and a guest cart (which has no caller at all) is written by resolving its ID, exactly as the existing `findCart` read comment anticipated. The pure/transactional split and the availability-via-inventory-doc read otherwise match the earlier write repos.                                                                                                                                                                                   |
 | 2026-09-09 | 15   | The `/cart` page reads the cart client-side through the API, not server-side                                           | The storefront's server read layer is anonymous by design and never reads a customer's own data; a guest cart is reached by a cookie a server render has no session for in v1.0. So the cart page is a `force-dynamic` shell around a client island that fetches through the API with `credentials: 'include'`. Client auth (Task 20) will let a signed-in cart also render server-side, but the API read is the correct path for the guest case today, and the cart is never cached regardless.                                                                                                                                                                          |
+| 2026-09-09 | 16   | GST is applied to the full taxable value (subtotal + gift wrap + shipping), not a narrower base                        | The spec does not single out which components GST applies to. The full invoice value is the unambiguous, defensible reading — a narrower base (subtotal only, or subtotal + gift wrap) would be a choice the docs do not support and would under-collect against the invoice total. `computeOrderTotals` applies the basis-point rate to the sum of the three taxable lines, and the `OrderAmounts` invariant (`total = subtotal + giftWrap + shipping + tax`) holds by construction.                                                                                                                                                                                     |
+| 2026-09-09 | 16   | A reservation bumps `inventory.reserved` only; it does not decrement `onHandTotal`                                     | Stock is not gone until the money is confirmed, so placement raises `reserved` and leaves `onHandTotal` for the payment commit (Task 17). Serialisation still holds: the oversell invariant `onHandTotal − reserved ≥ 0` on the one-document-per-variant record is what blocks the second concurrent checkout, proven by the emulator concurrency test. Decrementing on-hand at placement would double-count against the ledger the commit writes.                                                                                                                                                                                                                        |
+| 2026-09-09 | 16   | Order placement kept the in-memory idempotency store; the Firestore-backed one is deferred                             | `POST /v1/orders` was wired to the existing `IdempotencyStore` interface and the required `Idempotency-Key`, but the default remains in-memory. A cross-instance persisted store is real work with no behaviour difference at v1.0's single-instance scale, and the interface makes wiring it additive. Carried forward to Task 17 rather than built speculatively here. The in-process and emulator tests both exercise the replay path against the in-memory store.                                                                                                                                                                                                     |
+| 2026-09-09 | 16   | `qrcode.react@4.2.0` added to the storefront to render the UPI QR                                                      | No QR-rendering library existed in any package, and the confirmation page must draw the per-order UPI intent string as a scannable code. `qrcode.react` (`QRCodeSVG`) renders as SVG — no canvas, so it is SSR-safe and needs no browser API — declares React 19 as a peer, and is pinned exactly. The QR is a view of the server-minted payload; the payload, not the render, is the source of truth.                                                                                                                                                                                                                                                                    |
+| 2026-09-09 | 16   | The checkout page reads addresses via the client SDK and gets the ID token from `firebase/auth`                        | Order placement requires a bearer ID token, and the address picker needs the customer's saved addresses — but client auth (Task 20) and an address-create API do not exist yet. The page reads `users/{uid}/addresses` through the client SDK (a client-READ the rules already permit, as the account pages do) and attaches the current user's ID token to the API call, degrading to a "sign in" / "add an address" state otherwise. These are honest not-yet-wired states, not error screens, and the API read remains the write path for the order itself.                                                                                                            |     | 2026-09-09 | 17  | A reservation release writes no inventory-ledger entry                       | The plan item said the sweeper is "ledger-writing". But a reservation only ever raised `inventory.reserved` (Task 16) — it never moved on-hand — so releasing it lowers `reserved` back and on-hand does not change. The inventory ledger records on-hand movement and reconciles to `inventory.stock` (DATA_MODEL.md), so a ledger delta on a pure release would break that reconciliation. The on-hand decrement is the payment-commit's `order_committed` entry (Task 18); the release is recorded on the append-only event spine (`order.expired`) and the reservation's own `released`/`resolvedAt`, the correct audit for a pre-payment expiry. |
+| 2026-09-09 | 17   | The sweeper's non-execution alert is folded into the sweep run, not a separate scheduled alarm                         | The dispatcher's backlog alarm is separate because the dispatcher is trigger-driven and needs a scheduled watcher. The sweeper _is_ the scheduled job, so it measures its own residual backlog each pass and logs a heartbeat; a growing age means it could not keep up, and a missing heartbeat means it stopped — both are age-of-oldest signals a log policy watches, the only kind that catches a component failing by going silent. One fewer deployable, and the measure lives beside the sweep it describes.                                                                                                                                                       |
+| 2026-09-09 | 17   | The payment-proof route accepts a client-uploaded `screenshotPath`; there is no upload slot or magic-byte finalize     | The `payment-proofs/{orderId}/{uid}/…` storage path is already gated to the owner by the storage rules, so the client can upload directly and submit the path, which the API re-validates against that prefix. A registration/slot endpoint would duplicate what the rules already enforce. The magic-byte finalize/quarantine that product media has, and the storefront wiring of the upload itself, are carried forward — the v1.0 UI submits the UTR alone, the field the admin actually matches.                                                                                                                                                                     |     | 2026-09-09 | 18  | Short payment routes to exact-match-only, not a `partially_paid` order state | The plan and `SECURITY.md` say "route to a partial path, never close enough", but the order status machine has no `partially_paid` node and adding one would ripple through every consumer. Instead, only an exact `paidAmountMinor === totalMinor` reaches `paid`+commit; any mismatch is a typed `PAYMENT_AMOUNT_MISMATCH` carrying both figures. A short payment is handled by rejecting it (the customer tops up and resubmits via the existing `payment_rejected` edge); an overpayment, by verifying once matched and refunding the excess. This enforces the principle with the existing states rather than inventing one.                     |
+| 2026-09-09 | 18   | Verify-payment relies on the state machine for idempotency instead of an `Idempotency-Key`                             | API.md marks verify-payment "idempotent". Rather than wire the idempotency store, the `pending_verification → paid` transition guard provides it: a second verify finds the order already `paid` and `assertTransition` refuses, so stock cannot be committed twice. The guard is the mechanism, and it needs no key or store on a staff-only route.                                                                                                                                                                                                                                                                                                                      |
+| 2026-09-09 | 18   | A refund's destination is the customer's order contact, not the payment record's UTR                                   | The plan says "destination pre-filled from the order's payment record", but the only reference there (`payment.upiRef`) is the customer's _inward_ UTR — the wrong direction for a payout — and no customer VPA is stored. So a refund is reached through the order's `contact`, and the operator records the _outward_ UPI reference of the transfer they make (`RefundDoc.outwardUpiRef`, nullable until paid). Capturing a payer VPA at proof time is a roadmap item if a true pre-fill is wanted.                                                                                                                                                                     |
+| 2026-09-09 | 19   | "Enforced in `@romp/core`" reads as the machines living in contracts, asserted in the data repos                       | The plan phrased fulfilment enforcement as "in `@romp/core`". The state machines live in `@romp/contracts/domain`, `assertTransition` lives in `@romp/observability`, and enforcement is the `@romp/data` repository calling it inside the write transaction — the same layering every other transition uses. `@romp/core` holds only the pure analytics arithmetic (`aggregateDailyOrders`, `zonedDayWindow`). No behaviour changed; the layering follows the existing seam rather than the plan's shorthand.                                                                                                                                                            |
+| 2026-09-09 | 19   | The paid-before-pack rule is a handler guard, not a machine edge                                                       | Payment and fulfilment are separate machines, so `fulfilmentStatusMachine` cannot know whether the money arrived — "you cannot pack an unpaid order" is not a transition it can express. It is enforced once, explicitly, in `advanceFulfilment`: packing requires `order.status === 'paid'`, refused as `INVALID_STATE_TRANSITION` otherwise. Putting it in the machine would have coupled the two machines the design deliberately keeps apart.                                                                                                                                                                                                                         |
+| 2026-09-09 | 19   | Order cancellation branches on prior status; a held cancel writes no ledger entry                                      | `cancelOrder` is one action with two undos. A pre-payment cancel (holding statuses) lowers `reserved` and releases the reservation with **no** inventory-ledger entry — on-hand never moved, and the ledger records on-hand movement (the sweeper's release reasoning). A paid cancel optionally restocks on-hand with an `order_cancelled` entry, the mirror of the commit. Both move order and fulfilment status to `cancelled`. Refunding money is the separate owner-only `issueRefund`.                                                                                                                                                                              |
+| 2026-09-09 | 19   | The order list applies at most one of status / fulfilment status, for index safety                                     | The backoffice offers payment-status and fulfilment-status filters as alternatives, not a matrix, because a combined filter would need a composite index the query plan does not carry. `listOrders` applies whichever is set (payment status wins if both arrive), keeping every query index-backed with the existing single-dimension indexes. A humanId search short-circuits both.                                                                                                                                                                                                                                                                                    |
+| 2026-09-09 | 19   | The analytics dashboard reads pre-computed rollups; a "day" is the store-local day                                     | The dashboard must never aggregate `orders` on read (`DATA_MODEL.md`), so a scheduled Function writes one rollup document per store-local day and the dashboard reads a range. The day window is computed in the store's timezone (`zonedDayWindow`, half-open, via the runtime tz database), so an 11pm Bengaluru sale rolls up to that date, not the UTC one. The rollup is keyed by its date, so a re-run overwrites rather than duplicates — a materialised view.                                                                                                                                                                                                     |
+| 2026-09-09 | 19   | The admin order/fulfilment/dashboard screens are server-read with inert write controls                                 | Following Task 12's precedent, the screens read live data server-side as a staff caller, but the fulfilment, cancel and refund controls route through the API client whose `operatorToken()` is null until client auth (Task 20). A click surfaces "Sign in as a staff member" rather than doing nothing. The read side is fully live; the writes are exercisable end-to-end once Task 20 wires operator sign-in.                                                                                                                                                                                                                                                         |
 
 ## Decision log
 

@@ -338,6 +338,188 @@ const paths = {
       },
     },
   },
+  '/v1/checkout/quote': {
+    post: {
+      summary: 'Quote the signed-in customer’s cart at live prices',
+      requestBody: jsonBody('CheckoutQuoteRequest'),
+      responses: {
+        200: jsonResponse('The recomputed quote.', 'CheckoutQuoteResponse'),
+        ...errorResponses(['VALIDATION_FAILED', 'INVALID_STATE_TRANSITION', 'UNAUTHENTICATED']),
+      },
+    },
+  },
+  '/v1/orders': {
+    post: {
+      summary: 'Place the signed-in customer’s cart as an order (idempotent)',
+      requestBody: jsonBody('PlaceOrderRequest'),
+      responses: {
+        201: jsonResponse('The placed order, with the UPI QR payload.', 'PlaceOrderResponse'),
+        ...errorResponses([
+          'VALIDATION_FAILED',
+          'INSUFFICIENT_STOCK',
+          'INVALID_STATE_TRANSITION',
+          'UNAUTHENTICATED',
+          'NOT_FOUND',
+          'RATE_LIMITED',
+        ]),
+      },
+    },
+  },
+  '/v1/orders/{id}': {
+    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+    get: {
+      summary: 'Read one of the caller’s own orders',
+      responses: {
+        200: jsonResponse('The order as the customer views it.', 'OrderView'),
+        ...errorResponses(['UNAUTHENTICATED', 'NOT_FOUND']),
+      },
+    },
+  },
+  '/v1/orders/{id}/payment-proof': {
+    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+    post: {
+      summary: 'Submit a UPI payment reference (and optional proof) for an order (idempotent)',
+      requestBody: jsonBody('SubmitPaymentProofRequest'),
+      responses: {
+        200: jsonResponse('The order moved into verification.', 'SubmitPaymentProofResponse'),
+        ...errorResponses([
+          'VALIDATION_FAILED',
+          'DUPLICATE_PAYMENT_REFERENCE',
+          'RESERVATION_EXPIRED',
+          'INVALID_STATE_TRANSITION',
+          'UNAUTHENTICATED',
+          'NOT_FOUND',
+          'RATE_LIMITED',
+        ]),
+      },
+    },
+  },
+  '/v1/admin/orders': {
+    get: {
+      summary:
+        'List orders — newest first, filterable by status or fulfilment, or searched by humanId',
+      parameters: [
+        { name: 'status', in: 'query', required: false, schema: schemaRef('OrderStatus') },
+        {
+          name: 'fulfilmentStatus',
+          in: 'query',
+          required: false,
+          schema: schemaRef('FulfilmentStatus'),
+        },
+        { name: 'humanId', in: 'query', required: false, schema: schemaRef('HumanOrderId') },
+        { name: 'limit', in: 'query', required: false, schema: { type: 'integer' } },
+        { name: 'cursor', in: 'query', required: false, schema: schemaRef('Cursor') },
+      ],
+      responses: {
+        200: jsonResponse('A page of orders, newest first.', 'AdminOrderListResponse'),
+        ...errorResponses(['VALIDATION_FAILED', 'UNAUTHENTICATED', 'FORBIDDEN']),
+      },
+    },
+  },
+  '/v1/admin/orders/{id}/verify-payment': {
+    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+    post: {
+      summary: 'Verify a payment: commit stock and mark the order paid (exact amount)',
+      requestBody: jsonBody('VerifyPaymentRequest'),
+      responses: {
+        200: jsonResponse('The paid order.', 'OrderView'),
+        ...errorResponses([
+          'VALIDATION_FAILED',
+          'PAYMENT_AMOUNT_MISMATCH',
+          'INVALID_STATE_TRANSITION',
+          'UNAUTHENTICATED',
+          'FORBIDDEN',
+          'NOT_FOUND',
+          'RATE_LIMITED',
+        ]),
+      },
+    },
+  },
+  '/v1/admin/orders/{id}/reject-payment': {
+    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+    post: {
+      summary: 'Reject a payment the admin could not match; the customer may resubmit',
+      requestBody: jsonBody('RejectPaymentRequest'),
+      responses: {
+        200: jsonResponse('The rejected order, with the reason.', 'OrderView'),
+        ...errorResponses([
+          'VALIDATION_FAILED',
+          'INVALID_STATE_TRANSITION',
+          'UNAUTHENTICATED',
+          'FORBIDDEN',
+          'NOT_FOUND',
+          'RATE_LIMITED',
+        ]),
+      },
+    },
+  },
+  '/v1/admin/orders/{id}/fulfilment': {
+    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+    post: {
+      summary: 'Advance fulfilment: pack, ship (with carrier and tracking), deliver, or hold',
+      requestBody: jsonBody('FulfilmentRequest'),
+      responses: {
+        200: jsonResponse('The order at its new fulfilment stage.', 'OrderView'),
+        ...errorResponses([
+          'VALIDATION_FAILED',
+          'INVALID_STATE_TRANSITION',
+          'UNAUTHENTICATED',
+          'FORBIDDEN',
+          'NOT_FOUND',
+          'RATE_LIMITED',
+        ]),
+      },
+    },
+  },
+  '/v1/admin/orders/{id}/cancel': {
+    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+    post: {
+      summary: 'Cancel an order: release a held reservation, or restock a paid order',
+      requestBody: jsonBody('CancelOrderRequest'),
+      responses: {
+        200: jsonResponse('The cancelled order.', 'OrderView'),
+        ...errorResponses([
+          'VALIDATION_FAILED',
+          'INVALID_STATE_TRANSITION',
+          'UNAUTHENTICATED',
+          'FORBIDDEN',
+          'NOT_FOUND',
+          'RATE_LIMITED',
+        ]),
+      },
+    },
+  },
+  '/v1/admin/refunds': {
+    post: {
+      summary: 'Issue a full or partial refund (owner-only, append-only, optional restock)',
+      requestBody: jsonBody('IssueRefundRequest'),
+      responses: {
+        200: jsonResponse('The refund result.', 'IssueRefundResponse'),
+        ...errorResponses([
+          'VALIDATION_FAILED',
+          'REFUND_EXCEEDS_REFUNDABLE',
+          'INVALID_STATE_TRANSITION',
+          'UNAUTHENTICATED',
+          'FORBIDDEN',
+          'NOT_FOUND',
+          'RATE_LIMITED',
+        ]),
+      },
+    },
+  },
+  '/v1/admin/analytics/daily': {
+    get: {
+      summary: 'The daily analytics rollups for a date range — the dashboard series',
+      parameters: [
+        { name: 'from', in: 'query', required: true, schema: { type: 'string' } },
+        { name: 'to', in: 'query', required: true, schema: { type: 'string' } },
+      ],
+      responses: {
+        200: jsonResponse('The rollup rows, oldest first.', 'DailyAnalyticsResponse'),
+        ...errorResponses(['VALIDATION_FAILED', 'UNAUTHENTICATED', 'FORBIDDEN']),
+      },
+    },
+  },
 };
 
 const document = buildOpenApiDocument({

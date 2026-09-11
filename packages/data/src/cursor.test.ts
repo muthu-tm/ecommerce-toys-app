@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 
 import { UnsupportedQueryError } from '@romp/observability';
 
-import { decodeCursor, encodeCursor } from './cursor';
+import { decodeCursor, decodeOrderCursor, encodeCursor, encodeOrderCursor } from './cursor';
 
 /**
  * Cursor pagination.
@@ -159,5 +159,35 @@ describe('malformed cursors', () => {
       if (!(error instanceof UnsupportedQueryError)) throw error;
       expect(error.code).toBe('UNSUPPORTED_QUERY');
     }
+  });
+});
+
+describe('order-list cursor', () => {
+  it('round-trips the createdAt instant and the document ID', () => {
+    const at = new Date('2026-03-01T09:30:00.000Z');
+    const decoded = decodeOrderCursor(encodeOrderCursor(at, 'order-1'));
+
+    expect(decoded.createdAt.getTime()).toBe(at.getTime());
+    expect(decoded.documentId).toBe('order-1');
+  });
+
+  it('is opaque and survives a query string without escaping', () => {
+    const cursor = encodeOrderCursor(new Date('2026-03-01T09:30:00.000Z'), 'order-1');
+    expect(cursor).toMatch(/^[\w-]+$/);
+  });
+
+  it('is deterministic', () => {
+    const at = new Date('2026-03-01T09:30:00.000Z');
+    expect(encodeOrderCursor(at, 'order-1')).toBe(encodeOrderCursor(at, 'order-1'));
+  });
+
+  it('refuses a hand-edited cursor with a 400', () => {
+    expect(() => decodeOrderCursor('not-a-real-cursor')).toThrow(UnsupportedQueryError);
+  });
+
+  it('refuses a cursor from a different schema — a catalogue cursor is not an order cursor', () => {
+    // A product cursor encodes a sort tag and a field array, not an order's `t`/`d` shape.
+    const productCursor = encodeCursor('price_asc', [129_900], 'wooden-blocks');
+    expect(() => decodeOrderCursor(productCursor)).toThrow(UnsupportedQueryError);
   });
 });

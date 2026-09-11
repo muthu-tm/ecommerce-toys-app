@@ -5,13 +5,22 @@ import { onObjectFinalized } from 'firebase-functions/v2/storage';
 
 import { StoredEventSchema } from '@romp/contracts';
 import type { CountableProduct } from '@romp/core';
-import { applyProductCountDeltas, asSystem, COLLECTIONS, decodeTimestamps } from '@romp/data';
+import {
+  applyProductCountDeltas,
+  asSystem,
+  COLLECTIONS,
+  computeDailyRollup,
+  decodeTimestamps,
+  sweepExpiredReservations,
+} from '@romp/data';
 import { createLogger } from '@romp/observability';
+import storeConfig from '@romp/store-config/generated/store-config.json';
 
 import { finalizeMediaObject, parseProductMediaPath } from './media/finalize';
 import { measureDispatchBacklog } from './notifications/backlog';
 import { storeContext } from './notifications/context';
 import { dispatchStoredEvent } from './notifications/dispatcher';
+import { measureReservationBacklog } from './reservations/backlog';
 
 /**
  * The background Cloud Functions: the notification dispatcher and the backlog alarm.
@@ -93,6 +102,62 @@ export const notificationBacklogAlarm = onSchedule(
 
 /** Alert when the oldest undispatched event is older than five minutes — one schedule cycle. */
 const BACKLOG_ALERT_MS = 5 * 60 * 1000;
+
+/**
+ * The reservation sweeper.
+ *
+ * Releases every reservation past its expiry that still holds stock, then measures what remains.
+ * The release itself is idempotent and per-reservation transactional (`@romp/data`), so this glue is
+ * thin: run the sweep, then read the residual backlog age and alert on it.
+ *
+ * The alert is on **backlog age, not error rate**, and it is measured here rather than in a separate
+ * alarm because the sweeper is the thing that would stall — a reservation still `active` and overdue
+ * after a sweep pass means the pass could not free it, and a sweeper that has stopped running
+ * entirely simply stops emitting the healthy heartbeat, which a log-absence policy catches. Either
+ * way a growing age is the signal, and it lands in one place beside the sweep that owns it
+ * (`RUNBOOKS.md` runbook 2, ADR-0007).
+ */
+export const reservationSweeper = onSchedule(
+  { region: REGION, schedule: 'every 5 minutes' },
+  async () => {
+    const ctx = storeContext();
+    const result = await sweepExpiredReservations(ctx);
+
+    const backlog = await measureReservationBacklog(ctx);
+    if (
+      backlog.oldestOverdueAgeMs !== null &&
+      backlog.oldestOverdueAgeMs > SWEEP_BACKLOG_ALERT_MS
+    ) {
+      logger.error(
+        {
+          event: 'reservation.backlog',
+          oldestOverdueAgeMs: backlog.oldestOverdueAgeMs,
+          overdueCount: backlog.overdueCount,
+          released: result.released,
+          skipped: result.skipped,
+        },
+        'reservation.backlog exceeds threshold',
+      );
+    } else {
+      logger.info(
+        {
+          event: 'reservation.sweep',
+          found: result.found,
+          released: result.released,
+          skipped: result.skipped,
+        },
+        'reservation.sweep healthy',
+      );
+    }
+  },
+);
+
+/**
+ * Alert when a reservation is still overdue-and-active more than ten minutes past expiry — two
+ * schedule cycles, so a single missed run does not page. A healthy sweep clears everything overdue,
+ * so a positive reading here is a sweep that could not keep up or one that is not running.
+ */
+const SWEEP_BACKLOG_ALERT_MS = 10 * 60 * 1000;
 
 /** How many leading bytes to read for a magic-byte sniff — a header, not the whole file. */
 const SNIFF_BYTES = 64;
@@ -185,5 +250,62 @@ export const categoryProductCounter = onDocumentWritten(
         'category.count.failed',
       );
     }
+  },
+);
+
+/**
+ * The store's timezone, from config. It decides which calendar day an order belongs to (`DATA_MODEL`).
+ */
+const STORE_TIMEZONE = storeConfig.locale.timezone;
+
+/**
+ * The `yyyy-mm-dd` of the store-local day `daysAgo` days before an instant.
+ *
+ * Formatted in the store timezone, not UTC, so a rollup run just after local midnight rolls up the
+ * day that just ended rather than one still off by a UTC offset. `en-CA` renders `yyyy-mm-dd`
+ * directly, which is exactly the rollup document's key format.
+ */
+function storeLocalDate(instant: Date, timeZone: string, daysAgo: number): string {
+  const shifted = new Date(instant.getTime() - daysAgo * 24 * 60 * 60 * 1000);
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(shifted);
+}
+
+/**
+ * The daily analytics rollup.
+ *
+ * The admin dashboard must never scan `orders` on read (`DATA_MODEL.md`), so once a day this
+ * pre-computes the day that just ended into one small `analytics/rollups/daily/{date}` document. It
+ * runs a little after local midnight and rolls up **yesterday** — the completed store-local day, not
+ * the one in progress, whose figures are still moving. The write is keyed by the date, so a retried
+ * or manually re-triggered run overwrites rather than duplicates: the rollup is a materialised view,
+ * and recomputing it is always safe. Scheduled in the store timezone so "just after midnight" means
+ * the store's midnight.
+ */
+export const analyticsDailyRollup = onSchedule(
+  { region: REGION, schedule: '30 0 * * *', timeZone: STORE_TIMEZONE },
+  async () => {
+    const ctx = storeContext();
+    const date = storeLocalDate(ctx.clock.now(), STORE_TIMEZONE, 1);
+
+    const rollup = await computeDailyRollup(ctx, asSystem('analytics daily rollup'), {
+      date,
+      timeZone: STORE_TIMEZONE,
+    });
+
+    logger.info(
+      {
+        event: 'analytics.rollup',
+        date,
+        orderCount: rollup.orderCount,
+        paidCount: rollup.paidCount,
+        revenueMinor: rollup.revenueMinor,
+      },
+      'analytics.rollup complete',
+    );
   },
 );

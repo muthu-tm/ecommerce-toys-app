@@ -70,6 +70,8 @@ describe('CartClient', () => {
     expect(screen.getByText('Wooden blocks')).toBeInTheDocument();
     // 2 × ₹1,299 = ₹2,598.
     expect(screen.getAllByText(/2,598/u).length).toBeGreaterThan(0);
+    // The checkout link appears when there are items.
+    expect(screen.getByRole('link', { name: /checkout/iu })).toHaveAttribute('href', '/checkout');
   });
 
   it('removes a line through the API and re-renders from the returned view', async () => {

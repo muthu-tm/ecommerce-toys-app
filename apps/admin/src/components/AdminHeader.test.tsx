@@ -11,4 +11,10 @@ describe('AdminHeader', () => {
     expect(screen.getByText(brand.name)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Products' })).toHaveAttribute('href', '/');
   });
+
+  it('links to the orders and dashboard sections', () => {
+    render(<AdminHeader />);
+    expect(screen.getByRole('link', { name: 'Orders' })).toHaveAttribute('href', '/orders');
+    expect(screen.getByRole('link', { name: 'Dashboard' })).toHaveAttribute('href', '/dashboard');
+  });
 });

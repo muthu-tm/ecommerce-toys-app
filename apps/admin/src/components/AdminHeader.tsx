@@ -27,6 +27,12 @@ export function AdminHeader() {
           >
             Categories
           </Link>
+          <Link href="/orders" className="font-body text-sm text-text-primary hover:text-accent">
+            Orders
+          </Link>
+          <Link href="/dashboard" className="font-body text-sm text-text-primary hover:text-accent">
+            Dashboard
+          </Link>
         </nav>
       </div>
     </header>

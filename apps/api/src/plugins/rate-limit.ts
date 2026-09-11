@@ -103,6 +103,9 @@ export const RATE_LIMITS = {
   // legitimately makes many calls in a session, but still bounded so a runaway script or a
   // compromised staff token cannot hammer the write path.
   adminCatalogueWrite: { limit: 240, windowSeconds: 60 },
+  // Backoffice money actions — verify, reject, refund. Tighter than catalogue writes: each one
+  // settles or moves money, so a compromised or runaway operator token is bounded far lower.
+  adminOrderWrite: { limit: 60, windowSeconds: 60 },
   // Cart writes: a shopper adds, adjusts and removes lines freely, so the ceiling is generous,
   // but bounded so a script cannot hammer the availability-checking write path.
   cartWrite: { limit: 120, windowSeconds: 60 },

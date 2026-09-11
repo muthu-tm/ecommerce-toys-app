@@ -283,6 +283,28 @@ export class RefundExceedsRefundableError extends AppError {
   }
 }
 
+export class PaymentAmountMismatchError extends AppError {
+  readonly code = 'PAYMENT_AMOUNT_MISMATCH' as const;
+  readonly expectedMinor: number;
+  readonly paidMinor: number;
+
+  constructor(
+    params: { readonly expectedMinor: number; readonly paidMinor: number },
+    options: AppErrorOptions = {},
+  ) {
+    // The two figures are shown to the admin so they act on the real difference — a short
+    // payment is never accepted as "close enough". Both are the customer's own order
+    // amounts, so exposing them discloses nothing about anyone else.
+    super(
+      options.detail ??
+        `The paid amount does not match the order total (expected ${String(params.expectedMinor)}, got ${String(params.paidMinor)}).`,
+      { ...options, context: { ...options.context, ...params } },
+    );
+    this.expectedMinor = params.expectedMinor;
+    this.paidMinor = params.paidMinor;
+  }
+}
+
 // --- 422 / 429 / 500 --------------------------------------------------------
 
 export class WeakPasswordError extends AppError {

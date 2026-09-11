@@ -134,3 +134,65 @@ export function decodeCursor(cursor: Cursor | string, expectedSort: ProductSort)
 
   return { sortValues: candidate.f as readonly EncodableValue[], documentId: candidate.d };
 }
+
+/**
+ * Order-list cursors.
+ *
+ * The admin order list has one canonical sort — newest first by `createdAt`, with the document ID as
+ * the tiebreaker — so unlike the catalogue there is no sort to carry or mismatch. The cursor still
+ * has to be opaque and versioned for the same reasons: a hand-edited or stale cursor is a caller
+ * error a 400 explains, not a 500. The payload is the last row's `createdAt` in epoch milliseconds
+ * (an integer round-trips cleanly, where an ISO string invites a timezone disagreement) and its ID.
+ */
+interface OrderCursorPayload {
+  readonly v: 1;
+  /** Last row's `createdAt` as epoch milliseconds. */
+  readonly t: number;
+  /** Last row's document ID — the ordering tiebreaker. */
+  readonly d: string;
+}
+
+export function encodeOrderCursor(createdAt: Date, documentId: string): Cursor {
+  const payload: OrderCursorPayload = { v: CURSOR_VERSION, t: createdAt.getTime(), d: documentId };
+  return CursorSchema.parse(toBase64Url(JSON.stringify(payload)));
+}
+
+export interface DecodedOrderCursor {
+  readonly createdAt: Date;
+  readonly documentId: string;
+}
+
+export function decodeOrderCursor(cursor: Cursor | string): DecodedOrderCursor {
+  let payload: unknown;
+  try {
+    payload = JSON.parse(fromBase64Url(cursor)) as unknown;
+  } catch {
+    throw new UnsupportedQueryError({
+      limitation: 'malformed cursor',
+      detail: 'That pagination cursor is not readable. Start from the first page.',
+    });
+  }
+
+  if (typeof payload !== 'object' || payload === null) {
+    throw new UnsupportedQueryError({
+      limitation: 'malformed cursor',
+      detail: 'That pagination cursor is not readable. Start from the first page.',
+    });
+  }
+
+  const candidate = payload as Partial<OrderCursorPayload>;
+  if (candidate.v !== CURSOR_VERSION) {
+    throw new UnsupportedQueryError({
+      limitation: 'cursor version',
+      detail: 'That pagination cursor is from an older version. Start again.',
+    });
+  }
+  if (typeof candidate.t !== 'number' || typeof candidate.d !== 'string' || candidate.d === '') {
+    throw new UnsupportedQueryError({
+      limitation: 'malformed cursor',
+      detail: 'That pagination cursor is not readable. Start from the first page.',
+    });
+  }
+
+  return { createdAt: new Date(candidate.t), documentId: candidate.d };
+}

@@ -1,9 +1,13 @@
+import type { Query } from 'firebase-admin/firestore';
+
 import type {
+  Cursor,
   FulfilmentStatus,
   NotificationDoc,
   OrderDoc,
   OrderEventDoc,
   OrderStatus,
+  Paged,
   RefundDoc,
   ReviewDoc,
 } from '@romp/contracts';
@@ -13,6 +17,7 @@ import type { Caller, StoreContext } from '../context';
 import { isStaff, requireOwnership, requireStaff, uidOf } from '../context';
 import type { WithId } from '../converter';
 import { converters } from '../converters';
+import { decodeOrderCursor, encodeOrderCursor } from '../cursor';
 import { COLLECTIONS, paths } from '../paths';
 
 import { getDocument, runQuery } from './read';
@@ -129,6 +134,75 @@ export async function listOrdersByFulfilmentStatus(
  * Staff-only. Exposing it to customers would turn a guessable number into an order
  * lookup, which is precisely what keeping the two identifiers separate prevents.
  */
+/**
+ * The generic admin order list — one filterable, cursor-paginated read behind the backoffice orders
+ * screen.
+ *
+ * The single-purpose reads above (`listVerificationQueue`, `listOrdersByFulfilmentStatus`) each
+ * answer one fixed question with a bare limit and no cursor, because a work queue is a top-of-list
+ * view, not a browsable archive. This one is the archive: newest first, paged with an opaque cursor,
+ * filterable by payment status OR fulfilment status. The two filters are deliberately exclusive —
+ * combining them would need a composite index the query plan does not carry, and the backoffice
+ * offers them as alternatives, not a matrix — so the caller passes at most one, and `status` wins if
+ * both somehow arrive.
+ *
+ * A `humanId` short-circuits everything: a staff member searching `RMP-24817` wants that one order,
+ * not a page, so the filters and cursor are ignored and a one-or-zero-item page is returned. That is
+ * the search box, not the filter bar.
+ */
+export async function listOrders(
+  ctx: StoreContext,
+  caller: Caller,
+  options: {
+    readonly status?: OrderStatus;
+    readonly fulfilmentStatus?: FulfilmentStatus;
+    readonly humanId?: string;
+    readonly limit?: number;
+    readonly cursor?: Cursor | string;
+  } = {},
+): Promise<Paged<WithId<OrderDoc>>> {
+  requireStaff(caller, { resource: 'orders' });
+
+  // The search box: an exact human-ID lookup, ignoring filters and pagination.
+  if (options.humanId !== undefined && options.humanId !== '') {
+    const found = await findOrderByHumanId(ctx, caller, options.humanId);
+    return { items: found === null ? [] : [found], nextCursor: null };
+  }
+
+  const limit = options.limit ?? 24;
+
+  let query: Query<OrderDoc> = ctx.db
+    .collection(COLLECTIONS.orders)
+    .withConverter(converters.orders);
+
+  if (options.status !== undefined) {
+    query = query.where('status', '==', options.status);
+  } else if (options.fulfilmentStatus !== undefined) {
+    query = query.where('fulfilment.status', '==', options.fulfilmentStatus);
+  }
+
+  // The document ID is the final ordering component, so paging is total: without it two orders at
+  // the same instant have no defined order and a cursor can land mid-tie, repeating or skipping. It
+  // also means `startAfter` takes exactly two values, matching the two `orderBy` clauses.
+  let ordered = query.orderBy('createdAt', 'desc').orderBy('__name__', 'desc');
+
+  if (options.cursor !== undefined) {
+    const decoded = decodeOrderCursor(options.cursor);
+    ordered = ordered.startAfter(decoded.createdAt, decoded.documentId);
+  }
+
+  // Fetch one more than asked so "is there a next page" is answered without a second query.
+  const rows = await runQuery(ordered.limit(limit + 1));
+  const hasMore = rows.length > limit;
+  const items = hasMore ? rows.slice(0, limit) : rows;
+
+  const last = items.at(-1);
+  const nextCursor: Cursor | null =
+    hasMore && last !== undefined ? encodeOrderCursor(last.createdAt, last.id) : null;
+
+  return { items, nextCursor };
+}
+
 export async function findOrderByHumanId(
   ctx: StoreContext,
   caller: Caller,

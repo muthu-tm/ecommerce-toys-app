@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import type { CartView } from '@romp/contracts';
 import { formatMoney } from '@romp/contracts';
-import { Badge, Button, Card } from '@romp/ui';
+import { Badge, Button, ButtonLink, Card } from '@romp/ui';
 
 import { CartApiError, cartApi } from '@/lib/cart-api';
 import { commerce, content, mediaUrl, moneyFormat } from '@/lib/store';
@@ -181,6 +181,10 @@ export function CartClient() {
           {error}
         </p>
       ) : null}
+
+      <div className="flex justify-end">
+        <ButtonLink href="/checkout">Checkout</ButtonLink>
+      </div>
     </section>
   );
 }

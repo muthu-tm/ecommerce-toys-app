@@ -32,6 +32,13 @@ const base = createVitestConfig({
     // directly. Same reasoning as the Admin SDK bootstrap.
     'src/lib/firebase-client.ts',
     'src/lib/use-notifications.ts',
+    // Same reasoning as `firebase-client.ts`: `order-api.ts` reaches for the client SDK's
+    // ID token and `use-checkout.ts` reads the customer's addresses over the client SDK,
+    // both of which abort a jsdom worker on import. The checkout and confirmation
+    // components are tested with these two modules mocked (the request shapes are the
+    // contract types); the API side is covered end to end in `infra/tests`.
+    'src/lib/order-api.ts',
+    'src/lib/use-checkout.ts',
   ],
 });
 

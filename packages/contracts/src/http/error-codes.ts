@@ -18,6 +18,7 @@ export const ErrorCodeSchema = z.enum([
   'INSUFFICIENT_STOCK',
   'RESERVATION_EXPIRED',
   'DUPLICATE_PAYMENT_REFERENCE',
+  'PAYMENT_AMOUNT_MISMATCH',
   'INVALID_STATE_TRANSITION',
   'VARIANT_IN_USE',
   'REFUND_EXCEEDS_REFUNDABLE',
@@ -108,6 +109,15 @@ export const ERROR_DEFINITIONS: Readonly<Record<ErrorCode, ErrorDefinition>> = O
     status: 409,
     title: 'Payment reference already used',
     slug: 'duplicate-payment-reference',
+    exposeDetail: true,
+  },
+  // A verification whose paid amount does not exactly equal the order total. Deliberately
+  // not "close enough": an underpayment or overpayment is surfaced with both figures so an
+  // admin acts on the real difference, never marks it paid on approximation.
+  PAYMENT_AMOUNT_MISMATCH: {
+    status: 409,
+    title: 'Payment amount does not match the order total',
+    slug: 'payment-amount-mismatch',
     exposeDetail: true,
   },
   INVALID_STATE_TRANSITION: {
