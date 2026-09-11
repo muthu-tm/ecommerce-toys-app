@@ -332,8 +332,31 @@ export type {
   CheckoutQuoteResponse,
 } from './http/checkout';
 
-export { OrderViewSchema, PlaceOrderRequestSchema, PlaceOrderResponseSchema } from './http/orders';
-export type { OrderView, PlaceOrderRequest, PlaceOrderResponse } from './http/orders';
+export {
+  OrderListResponseSchema,
+  OrderViewSchema,
+  PlaceOrderRequestSchema,
+  PlaceOrderResponseSchema,
+} from './http/orders';
+export type {
+  OrderListResponse,
+  OrderView,
+  PlaceOrderRequest,
+  PlaceOrderResponse,
+} from './http/orders';
+
+export {
+  AddressCreateRequestSchema,
+  AddressCreateResponseSchema,
+  AddressUpdateRequestSchema,
+  AddressViewSchema,
+} from './http/addresses';
+export type {
+  AddressCreateRequest,
+  AddressCreateResponse,
+  AddressUpdateRequest,
+  AddressView,
+} from './http/addresses';
 
 export { SubmitPaymentProofRequestSchema, SubmitPaymentProofResponseSchema } from './http/payments';
 export type { SubmitPaymentProofRequest, SubmitPaymentProofResponse } from './http/payments';

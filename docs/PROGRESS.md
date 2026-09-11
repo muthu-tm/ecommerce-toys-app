@@ -16,13 +16,13 @@ Rules for this document:
 
 ## Summary
 
-|                |                                                 |
-| -------------- | ----------------------------------------------- |
-| Tasks complete | **19 / 24**                                     |
-| Current phase  | Phase 6 — Commerce                              |
-| Current task   | Task 20 — Customer account and WhatsApp support |
-| Blocked        | Nothing in code; account-level actions pending  |
-| Last updated   | 2026-09-09                                      |
+|                |                                                |
+| -------------- | ---------------------------------------------- |
+| Tasks complete | **20 / 24**                                    |
+| Current phase  | Phase 7 — Account and social                   |
+| Current task   | Task 21 — Reviews with moderation              |
+| Blocked        | Nothing in code; account-level actions pending |
+| Last updated   | 2026-09-09                                     |
 
 **Outstanding account-level actions.** These need the owner's Google and GitHub accounts, so they are
 scripted and documented but not executed:
@@ -49,7 +49,7 @@ scripted and documented but not executed:
 | 5. Backoffice catalogue       | 12–14 | Products, media, variants, inventory, categories               | `[~]`  |
 
 | 6. Commerce | 15–19 | Cart, orders, UPI, verification, refunds, fulfilment | `[x]` |
-| 7. Account and social | 20–21 | Customer account, WhatsApp support, reviews | `[ ]` |
+| 7. Account and social | 20–21 | Customer account, WhatsApp support, reviews | `[~]` |
 | 8. Hardening and launch | 22–24 | Performance, SEO, a11y, security, cutover, launch | `[ ]` |
 
 ---
@@ -1179,11 +1179,77 @@ key (60/minute, from Task 18) is reused for the fulfilment and cancel writes.
 
 ## Phase 7 — Account and social
 
-### `[ ]` Task 20 — Customer account and WhatsApp support
+### `[x]` Task 20 — Customer account and WhatsApp support
 
-- [ ] Profile, addresses, order history and tracking, wishlist
-- [ ] Password and address changes notified to the account's own feed, so a takeover is visible
-- [ ] WhatsApp deep link prefilled with order context, number from store config
+- [x] Profile, addresses, order history and tracking, wishlist — the `/account` area: a profile with
+      a display-name edit and password change, address CRUD holding the single-default invariant,
+      order history and per-order detail with tracking, and a wishlist. Every write is API-owned; the
+      per-customer reads come straight from Firestore under the rules.
+- [x] The customer sign-in / register / sign-out surface and an app-wide auth context — the seam
+      every prior "inert until Task 20" feature waited on. The navbar bell, the checkout token and
+      the account pages now read one live `{ uid, ready }`, and the wishlist heart and account
+      controls actually write.
+- [x] Password and address changes notified to the account's own feed — new customer-only
+      `account.password_changed` and `account.address_added` events on the spine, routed to a
+      notification the owner sees. A password change also revokes every other session. If it was not
+      you, you see it — the takeover-visibility `IDENTITY.md` requires.
+- [x] WhatsApp deep link prefilled with order context — the order detail's support CTA is a
+      `wa.me` link built by `buildWhatsappLink(contact, humanId)`, so a customer messaging about an
+      order opens a chat that already names it. Support is WhatsApp because the platform sends no
+      email (ADR-0007).
+- [x] Address CRUD with the invariants held server-side — exactly one default at all times, the
+      first address is the default whether asked or not, and the default cannot be deleted out from
+      under that rule (promote another first). The wishlist and the whole `/account/wishlist` route
+      are behind the `wishlist` feature flag: a store with it off refuses the routes and 404s the
+      page, not only hides the UI.
+
+**Configuration.** The `wishlist` feature flag gates the heart, the account wishlist page **and** the
+wishlist API routes — on for ROMP, off for `_template`, where the routes refuse and the page is a 404. `contact.whatsappNumber` / `whatsappGreeting` drive the order-context support link (the
+`{orderRef}` token is the order's `humanId`). A new `accountWrite` rate-limit key (120/min/customer)
+bounds address and wishlist writes. A composite index on `addresses` (`isDefault DESC, createdAt
+DESC`) backs the address list read. No new store-config surface — the account-security notifications
+reuse the existing `content.notifications` copy map.
+
+**Demo.**
+
+| Claim                                                       | How to see it                                                                                                                                         |
+| ----------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| A customer signs in and reaches their account               | `pnpm --filter @romp/storefront test` — the sign-in form normalises the identifier and navigates; the account dashboard loads the profile             |
+| Address CRUD holds exactly one default                      | `pnpm --filter @romp/infra test` — `api-account`: create/promote/delete over HTTP keeps one default; deleting the default while others exist is a 400 |
+| A password change is visible on the account's own feed      | `api-account` — password-change returns 204 and appends `account.password_changed`; `account-write` proves the address event too                      |
+| The WhatsApp CTA names the order                            | `account-order-detail` test — the support link is `wa.me/<number>` with the order's `humanId` in the pre-filled message                               |
+| The wishlist heart toggles and reflects across a reload     | `wishlist-heart` test — reads the saved state client-side, toggles through the API; signed out it is a sign-in link                                   |
+| The wishlist is off for a store that disables it            | `_template` build — the wishlist routes refuse (404) and `/account/wishlist` is `notFound`, not merely hidden                                         |
+| A signed-out visitor is prompted, never shown an empty page | every account component test — `uid === null` renders the shared sign-in prompt with a `next` back to where they were                                 |
+
+**Notes.**
+
+- **The auth surface is the seam a dozen earlier tasks deferred to here.** Every "inert until Task
+  20" note — the checkout token, the admin write controls' precedent, the notification bell's
+  hardcoded `uid={null}` — was waiting on a real client sign-in. It lands as one `AuthProvider` with
+  a single `onAuthStateChanged` subscription shared through context, so features read `{ uid, ready }`
+  rather than each wiring their own listener. `ready` exists so a page shows a spinner rather than
+  flashing the signed-out state before the SDK resolves.
+- **Account-security notifications are customer-only, by design.** `account.password_changed` and
+  `account.address_added` route to the customer's own feed and to no admin — the point is that the
+  real owner sees a change they may not have made, and there is no staff interest in one customer
+  changing their password (routing it to staff would be noise and a privacy leak). They are the
+  first events with an `account` subject kind. The password event is appended after the Auth write
+  succeeds — the password change is the source of truth, the notification its projection — so a
+  failed append does not undo a security-critical change.
+- **The single-default invariant is why addresses are API-written.** A customer reads their addresses
+  straight from Firestore, but promoting one to default has to demote the others, which is a
+  multi-document write a client cannot make atomically and rules cannot enforce across documents. So
+  the write crosses the API, and the first address is forced default, and the default cannot be
+  deleted while another exists — a `ValidationFailedError` (an existing 400) rather than a new error
+  code, because it is a well-formed request the current state forbids.
+- **The wishlist flag gates the server, not just the UI.** A disabled feature whose routes still
+  answered would be a flag defeated by calling the API directly. So the wishlist routes refuse with a
+  404 when the flag is off, and the account page is `notFound` — the same posture the catalogue's
+  hidden resources take. ROMP has it on; `_template` has it off, which the both-store build exercises.
+- **Delivery-contact phone is not a login credential.** An address's `phone` is a plain string (a
+  courier may need a landline or an extension), deliberately not the E.164 login identifier — the
+  same distinction `PostalAddressSchema` already drew, carried through the address contract.
 
 ### `[ ]` Task 21 — Reviews with moderation
 
@@ -1380,6 +1446,10 @@ are being called done early.
 | 2026-09-09 | 19   | The order list applies at most one of status / fulfilment status, for index safety                                     | The backoffice offers payment-status and fulfilment-status filters as alternatives, not a matrix, because a combined filter would need a composite index the query plan does not carry. `listOrders` applies whichever is set (payment status wins if both arrive), keeping every query index-backed with the existing single-dimension indexes. A humanId search short-circuits both.                                                                                                                                                                                                                                                                                    |
 | 2026-09-09 | 19   | The analytics dashboard reads pre-computed rollups; a "day" is the store-local day                                     | The dashboard must never aggregate `orders` on read (`DATA_MODEL.md`), so a scheduled Function writes one rollup document per store-local day and the dashboard reads a range. The day window is computed in the store's timezone (`zonedDayWindow`, half-open, via the runtime tz database), so an 11pm Bengaluru sale rolls up to that date, not the UTC one. The rollup is keyed by its date, so a re-run overwrites rather than duplicates — a materialised view.                                                                                                                                                                                                     |
 | 2026-09-09 | 19   | The admin order/fulfilment/dashboard screens are server-read with inert write controls                                 | Following Task 12's precedent, the screens read live data server-side as a staff caller, but the fulfilment, cancel and refund controls route through the API client whose `operatorToken()` is null until client auth (Task 20). A click surfaces "Sign in as a staff member" rather than doing nothing. The read side is fully live; the writes are exercisable end-to-end once Task 20 wires operator sign-in.                                                                                                                                                                                                                                                         |
+| 2026-09-09 | 20   | Account-security notifications are new customer-only events, appended after the change                                 | Requirement 2 (password/address changes visible on the account's own feed) had no home in the existing event taxonomy. Added `account.password_changed` and `account.address_added` with a new `account` subject kind, routed customer-only (no admin — it would be noise and a privacy leak). The address event is appended in the same transaction as the write; the password event is appended after the Auth `updateUser`+`revokeRefreshTokens` succeed, because the password change is the source of truth and the notification is its projection.                                                                                                                   |
+| 2026-09-09 | 20   | Deleting the only/default address is refused with the existing `VALIDATION_FAILED`, not a new code                     | V1_SCOPE says the only default address cannot be deleted. Rather than add an error code (which ripples through the taxonomy, OpenAPI and the problem-document tests), the repository refuses with a `ValidationFailedError` (400) naming `addressId` — a well-formed request the current state forbids. The invariant it protects (always exactly one default while an address exists) is the reason the address writes are API-owned rather than client writes.                                                                                                                                                                                                          |
+| 2026-09-09 | 20   | The wishlist feature flag gates the API routes and the page, not only the UI                                           | A flag that only hid the heart would be defeated by calling the wishlist API directly or visiting `/account/wishlist`. So the routes refuse with a 404 when `features.wishlist` is off, and the page is `notFound` — the server contract enforces the flag, matching how hidden resources behave elsewhere. ROMP has it on; `_template` has it off, exercised by the both-store build.                                                                                                                                                                                                                                                                                    |
+| 2026-09-09 | 20   | One shared auth context replaces per-feature `onUidChanged` wiring                                                     | The checkout page and the notification bell each derived the current uid independently before this. Task 20 introduces a single `AuthProvider`/`useAuth` with one subscription, mounted in the root layout, so the header bell and the account pages share `{ uid, ready }`. `NotificationBell` keeps its `uid` prop (a thin `HeaderBell` client wrapper feeds it) so it stays testable in isolation.                                                                                                                                                                                                                                                                     |
 
 ## Decision log
 

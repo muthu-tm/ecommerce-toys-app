@@ -2,6 +2,7 @@ import type { FastifyRequest } from 'fastify';
 
 import { PlaceOrderRequestSchema, SubmitPaymentProofRequestSchema } from '@romp/contracts';
 import type {
+  OrderListResponse,
   OrderView,
   PlaceOrderResponse,
   SubmitPaymentProofResponse,
@@ -13,6 +14,7 @@ import {
   findOrder,
   getCheckoutSettings,
   getUser,
+  listOrdersForUser,
   reserveAndPlaceOrder,
   submitPaymentProof,
 } from '@romp/data';
@@ -53,6 +55,16 @@ export function registerOrderRoutes(app: RompApp): void {
   const limitPaymentProof = (request: FastifyRequest): void => {
     app.rateLimiter.consume(rateLimitKey(request, 'paymentProof'), RATE_LIMITS.paymentProof);
   };
+
+  // --- order history ------------------------------------------------------
+  app.get('/v1/orders', { preHandler: requireAuthHook }, async (request, reply) => {
+    const uid = requireUser(request);
+    // The uid is the caller's own; `listOrdersForUser` filters on it in the query, so a customer
+    // reads only their own history — the ownership control, since the Admin SDK bypasses rules.
+    const orders = await listOrdersForUser(context, request.caller, uid);
+    const response: OrderListResponse = { orders: orders.map((order) => toOrderView(order)) };
+    return reply.send(response);
+  });
 
   // --- place an order -----------------------------------------------------
   app.post('/v1/orders', { preHandler: requireAuthHook }, async (request, reply) => {

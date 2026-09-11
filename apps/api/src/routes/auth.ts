@@ -5,7 +5,7 @@ import {
   UidSchema,
   money,
 } from '@romp/contracts';
-import type { E164Phone, Email, IdentifierType } from '@romp/contracts';
+import type { E164Phone, Email, EventDoc, IdentifierType } from '@romp/contracts';
 import {
   InvalidPhoneNumberError,
   assessPassword,
@@ -14,7 +14,13 @@ import {
   normalizePhone,
   toAuthEmail,
 } from '@romp/core';
-import { createUserProfile, isIdentifierTaken, releaseIdentity, reserveIdentity } from '@romp/data';
+import {
+  appendEvent,
+  createUserProfile,
+  isIdentifierTaken,
+  releaseIdentity,
+  reserveIdentity,
+} from '@romp/data';
 import {
   IdentifierTakenError,
   ValidationFailedError,
@@ -172,6 +178,20 @@ export function registerAuthRoutes(app: RompApp): void {
     // verification later is not a breaking change to the request contract.
     await auth.updateUser(uid, { password: body.newPassword });
     await auth.revokeRefreshTokens(uid);
+
+    // Record the change on the account's own feed so a takeover is visible: if this was not the
+    // owner, they see "your password was changed". A spine event, appended after the Auth write
+    // succeeds — the password change is the source of truth, and the notification is its
+    // projection. Not fatal if the append fails: the password is already changed and sessions
+    // revoked, which is the security-critical part; the notification is best-effort.
+    const event: EventDoc = {
+      type: 'account.password_changed',
+      actorId: uid as EventDoc['actorId'],
+      subject: { kind: 'account', id: uid },
+      payload: { type: 'account.password_changed', userId: uid as never },
+      at: context.clock.now(),
+    };
+    await appendEvent(context, event);
 
     return reply.code(204).send();
   });

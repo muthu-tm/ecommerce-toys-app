@@ -46,24 +46,26 @@ Three properties follow from this shape, and each one matters:
 
 Events are facts about the past, named `noun.verb-past-tense`. Each carries a Zod-validated payload.
 
-| `type`                    | Emitted by                          | Payload                                                     |
-| ------------------------- | ----------------------------------- | ----------------------------------------------------------- |
-| `order.created`           | `POST /v1/orders`                   | `orderId`, `humanId`, `userId`, `totalMinor`, `itemCount`   |
-| `order.payment_submitted` | `POST /v1/orders/:id/payment-proof` | `orderId`, `humanId`, `userId`, `hasScreenshot`             |
-| `order.payment_verified`  | admin verify                        | `orderId`, `humanId`, `userId`, `verifiedBy`                |
-| `order.payment_rejected`  | admin reject                        | `orderId`, `humanId`, `userId`, `reason`, `rejectedBy`      |
-| `order.expired`           | reservation sweeper                 | `orderId`, `humanId`, `userId`                              |
-| `order.packed`            | fulfilment transition               | `orderId`, `humanId`, `userId`                              |
-| `order.shipped`           | fulfilment transition               | `orderId`, `humanId`, `userId`, `carrier`, `trackingNo`     |
-| `order.delivered`         | fulfilment transition               | `orderId`, `humanId`, `userId`                              |
-| `order.cancelled`         | admin cancel                        | `orderId`, `humanId`, `userId`, `reason`                    |
-| `refund.issued`           | `POST /v1/admin/refunds`            | `refundId`, `orderId`, `humanId`, `userId`, `amountMinor`   |
-| `review.submitted`        | `POST /v1/reviews`                  | `reviewId`, `productId`, `userId`                           |
-| `review.published`        | admin moderation                    | `reviewId`, `productId`, `userId`, `productSlug`            |
-| `review.rejected`         | admin moderation                    | `reviewId`, `productId`, `userId`, `reason`                 |
-| `inventory.low_stock`     | inventory transaction               | `variantId`, `productId`, `sku`, `remaining`, `warehouseId` |
-| `inventory.out_of_stock`  | inventory transaction               | `variantId`, `productId`, `sku`                             |
-| `sweeper.anomaly`         | reservation sweeper                 | `detail`, `affectedCount`                                   |
+| `type`                     | Emitted by                          | Payload                                                     |
+| -------------------------- | ----------------------------------- | ----------------------------------------------------------- |
+| `order.created`            | `POST /v1/orders`                   | `orderId`, `humanId`, `userId`, `totalMinor`, `itemCount`   |
+| `order.payment_submitted`  | `POST /v1/orders/:id/payment-proof` | `orderId`, `humanId`, `userId`, `hasScreenshot`             |
+| `order.payment_verified`   | admin verify                        | `orderId`, `humanId`, `userId`, `verifiedBy`                |
+| `order.payment_rejected`   | admin reject                        | `orderId`, `humanId`, `userId`, `reason`, `rejectedBy`      |
+| `order.expired`            | reservation sweeper                 | `orderId`, `humanId`, `userId`                              |
+| `order.packed`             | fulfilment transition               | `orderId`, `humanId`, `userId`                              |
+| `order.shipped`            | fulfilment transition               | `orderId`, `humanId`, `userId`, `carrier`, `trackingNo`     |
+| `order.delivered`          | fulfilment transition               | `orderId`, `humanId`, `userId`                              |
+| `order.cancelled`          | admin cancel                        | `orderId`, `humanId`, `userId`, `reason`                    |
+| `refund.issued`            | `POST /v1/admin/refunds`            | `refundId`, `orderId`, `humanId`, `userId`, `amountMinor`   |
+| `review.submitted`         | `POST /v1/reviews`                  | `reviewId`, `productId`, `userId`                           |
+| `review.published`         | admin moderation                    | `reviewId`, `productId`, `userId`, `productSlug`            |
+| `review.rejected`          | admin moderation                    | `reviewId`, `productId`, `userId`, `reason`                 |
+| `inventory.low_stock`      | inventory transaction               | `variantId`, `productId`, `sku`, `remaining`, `warehouseId` |
+| `inventory.out_of_stock`   | inventory transaction               | `variantId`, `productId`, `sku`                             |
+| `sweeper.anomaly`          | reservation sweeper                 | `detail`, `affectedCount`                                   |
+| `account.password_changed` | `POST /v1/auth/password-change`     | `userId`                                                    |
+| `account.address_added`    | `POST /v1/addresses`                | `userId`, `addressLabel`                                    |
 
 ---
 
@@ -72,24 +74,26 @@ Events are facts about the past, named `noun.verb-past-tense`. Each carries a Zo
 Lives in `packages/core` as data, not branching logic — so it is exhaustively testable and readable
 in one screen.
 
-| Event                     | → Customer             | → Admin                   |
-| ------------------------- | ---------------------- | ------------------------- |
-| `order.created`           | `order_placed`         | `new_order`               |
-| `order.payment_submitted` | `payment_under_review` | `payment_proof_submitted` |
-| `order.payment_verified`  | `payment_verified`     | —                         |
-| `order.payment_rejected`  | `payment_rejected`     | —                         |
-| `order.expired`           | `order_expired`        | —                         |
-| `order.packed`            | `order_packed`         | —                         |
-| `order.shipped`           | `order_shipped`        | —                         |
-| `order.delivered`         | `order_delivered`      | —                         |
-| `order.cancelled`         | `order_cancelled`      | —                         |
-| `refund.issued`           | `refund_issued`        | —                         |
-| `review.submitted`        | —                      | `review_pending`          |
-| `review.published`        | `review_published`     | —                         |
-| `review.rejected`         | —                      | —                         |
-| `inventory.low_stock`     | —                      | `low_stock`               |
-| `inventory.out_of_stock`  | —                      | `out_of_stock`            |
-| `sweeper.anomaly`         | —                      | `sweeper_anomaly`         |
+| Event                      | → Customer             | → Admin                   |
+| -------------------------- | ---------------------- | ------------------------- |
+| `order.created`            | `order_placed`         | `new_order`               |
+| `order.payment_submitted`  | `payment_under_review` | `payment_proof_submitted` |
+| `order.payment_verified`   | `payment_verified`     | —                         |
+| `order.payment_rejected`   | `payment_rejected`     | —                         |
+| `order.expired`            | `order_expired`        | —                         |
+| `order.packed`             | `order_packed`         | —                         |
+| `order.shipped`            | `order_shipped`        | —                         |
+| `order.delivered`          | `order_delivered`      | —                         |
+| `order.cancelled`          | `order_cancelled`      | —                         |
+| `refund.issued`            | `refund_issued`        | —                         |
+| `review.submitted`         | —                      | `review_pending`          |
+| `review.published`         | `review_published`     | —                         |
+| `review.rejected`          | —                      | —                         |
+| `inventory.low_stock`      | —                      | `low_stock`               |
+| `inventory.out_of_stock`   | —                      | `out_of_stock`            |
+| `sweeper.anomaly`          | —                      | `sweeper_anomaly`         |
+| `account.password_changed` | `password_changed`     | —                         |
+| `account.address_added`    | `address_added`        | —                         |
 
 Deliberate omissions worth noting:
 

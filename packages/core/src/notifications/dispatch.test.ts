@@ -85,6 +85,8 @@ function storedEvent(type: EventType): StoredEvent {
       sku: 'WB-240',
     } as never,
     'sweeper.anomaly': { type, detail: 'stuck', affectedCount: 3 } as never,
+    'account.password_changed': { type, userId: 'cust-1' } as never,
+    'account.address_added': { type, userId: 'cust-1', addressLabel: 'Home' } as never,
   };
   return {
     id: EventIdSchema.parse(`event-${type}`),

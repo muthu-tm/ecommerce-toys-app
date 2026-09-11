@@ -40,6 +40,8 @@ const EVENT_TOKENS: Readonly<Record<EventType, readonly string[]>> = Object.free
   'inventory.low_stock': ['sku'],
   'inventory.out_of_stock': ['sku'],
   'sweeper.anomaly': [],
+  'account.password_changed': [],
+  'account.address_added': ['addressLabel'],
 });
 
 /**

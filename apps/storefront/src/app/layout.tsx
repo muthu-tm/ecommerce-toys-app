@@ -6,6 +6,7 @@ import './globals.css';
 import { SiteFooter } from '@/components/SiteFooter';
 import { SiteHeader } from '@/components/SiteHeader';
 import { fontClassName } from '@/generated/fonts';
+import { AuthProvider } from '@/lib/auth-context';
 import { brand, locale, theme } from '@/lib/store';
 
 /**
@@ -68,16 +69,22 @@ export default function RootLayout({ children }: { readonly children: React.Reac
       <body className="min-h-dvh antialiased">
         {/* First tabbable element, so a keyboard user is not marched through the header. */}
         <SkipLink />
-        <SiteHeader />
         {/*
-          `main` with an id is the skip-link target and the page's primary landmark.
-          tabIndex={-1} makes it programmatically focusable so the skip actually moves
-          focus rather than only scrolling.
+          One auth subscription for the whole tree — the header's bell and the account pages read
+          the same `{ uid, ready }` rather than each wiring their own listener.
         */}
-        <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
-          {children}
-        </main>
-        <SiteFooter />
+        <AuthProvider>
+          <SiteHeader />
+          {/*
+            `main` with an id is the skip-link target and the page's primary landmark.
+            tabIndex={-1} makes it programmatically focusable so the skip actually moves
+            focus rather than only scrolling.
+          */}
+          <main id="main-content" tabIndex={-1} className="mx-auto max-w-7xl px-4 py-8 lg:px-6">
+            {children}
+          </main>
+          <SiteFooter />
+        </AuthProvider>
       </body>
     </html>
   );

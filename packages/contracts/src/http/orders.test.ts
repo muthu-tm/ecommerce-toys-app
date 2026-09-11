@@ -1,6 +1,11 @@
 import { describe, expect, it } from 'vitest';
 
-import { OrderViewSchema, PlaceOrderRequestSchema, PlaceOrderResponseSchema } from './orders';
+import {
+  OrderListResponseSchema,
+  OrderViewSchema,
+  PlaceOrderRequestSchema,
+  PlaceOrderResponseSchema,
+} from './orders';
 
 /**
  * The order contracts. The concern is the boundary the placement route relies on: the request
@@ -170,5 +175,83 @@ describe('OrderViewSchema', () => {
         items: [{ ...view.items[0], lineTotalMinor: 1 }],
       }).success,
     ).toBe(false);
+  });
+});
+
+describe('OrderListResponseSchema', () => {
+  const view = {
+    orderId: 'order-abc',
+    humanId: 'RMP-1000',
+    status: 'paid' as const,
+    fulfilment: {
+      status: 'unfulfilled' as const,
+      carrier: null,
+      trackingNo: null,
+      packedAt: null,
+      shippedAt: null,
+      deliveredAt: null,
+      holdReason: null,
+    },
+    items: [
+      {
+        productId: 'wooden-blocks',
+        variantId: 'WB-240',
+        sku: 'WB-240',
+        name: 'Wooden blocks',
+        variantName: '240 pieces',
+        imagePath: null,
+        unitPriceMinor: 1_00_000,
+        qty: 2,
+        lineTotalMinor: 2_00_000,
+      },
+    ],
+    amounts: {
+      subtotalMinor: 2_00_000,
+      giftWrapMinor: 5_000,
+      shippingMinor: 0,
+      taxMinor: 36_900,
+      totalMinor: 2_41_900,
+      refundedMinor: 0,
+    },
+    shippingAddress: {
+      recipientName: 'Asha Rao',
+      line1: '1 MG Road',
+      line2: null,
+      city: 'Bengaluru',
+      state: 'Karnataka',
+      pincode: '560001',
+      phone: '+919845021174',
+    },
+    deliverySpeed: 'standard' as const,
+    isGift: false,
+    giftMessage: null,
+    payment: {
+      method: 'upi' as const,
+      upiRef: '412398765432',
+      screenshotPath: null,
+      qrPayload: 'upi://pay?pa=romp@bank&pn=Store&am=2419.00&tn=RMP-1000&cu=INR',
+      submittedAt: new Date('2026-09-09T00:00:00.000Z'),
+      verifiedBy: 'staff-uid-0001',
+      verifiedAt: new Date('2026-09-09T00:00:00.000Z'),
+      rejectedBy: null,
+      rejectedAt: null,
+      rejectionReason: null,
+    },
+    createdAt: new Date('2026-09-09T00:00:00.000Z'),
+    updatedAt: new Date('2026-09-09T00:00:00.000Z'),
+  };
+
+  it('accepts an order history of one or more views', () => {
+    expect(OrderListResponseSchema.safeParse({ orders: [view] }).success).toBe(true);
+  });
+
+  it('accepts an empty history', () => {
+    expect(OrderListResponseSchema.safeParse({ orders: [] }).success).toBe(true);
+  });
+
+  it('rejects a malformed order in the list', () => {
+    expect(OrderListResponseSchema.safeParse({ orders: [{ ...view, items: [] }] }).success).toBe(
+      false,
+    );
   });
 });

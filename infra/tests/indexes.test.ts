@@ -277,6 +277,11 @@ const REPOSITORY_QUERIES: readonly (readonly [string, string, QueryShape])[] = [
     { equalities: ['orderId'], arrayContains: [], ranges: [], orderBy: ['createdAt'] },
   ],
   [
+    "a customer's saved addresses",
+    'addresses',
+    { equalities: [], arrayContains: [], ranges: [], orderBy: ['isDefault', 'createdAt'] },
+  ],
+  [
     'the storefront nav',
     'categories',
     { equalities: ['showInNav'], arrayContains: [], ranges: [], orderBy: ['sortOrder'] },

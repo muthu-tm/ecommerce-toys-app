@@ -247,6 +247,14 @@ export default defineStoreConfig({
         title: 'Reservation sweeper anomaly',
         body: 'The sweeper reported something unresolved. Check the runbook.',
       },
+      password_changed: {
+        title: 'Your password was changed',
+        body: 'If this was not you, contact support — every other session has been signed out.',
+      },
+      address_added: {
+        title: 'A new address was saved',
+        body: 'The address "{addressLabel}" was added to your account.',
+      },
     },
 
     emptyStates: {

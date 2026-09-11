@@ -13,6 +13,11 @@ import { ReservationStatusSchema } from '../domain/reservation';
 import { RatingSchema, ReviewStatusSchema } from '../domain/review';
 import { AudienceSchema, EventTypeSchema, NotificationTypeSchema } from '../events';
 import {
+  AddressCreateRequestSchema,
+  AddressUpdateRequestSchema,
+  AddressViewSchema,
+} from '../http/addresses';
+import {
   DailyAnalyticsRangeRequestSchema,
   DailyAnalyticsResponseSchema,
 } from '../http/admin-analytics';
@@ -58,7 +63,12 @@ import { AddCartItemRequestSchema, CartViewSchema, UpdateCartRequestSchema } fro
 import { CheckoutQuoteRequestSchema, CheckoutQuoteResponseSchema } from '../http/checkout';
 import { ERROR_DEFINITIONS, ErrorCodeSchema, errorTypeUri } from '../http/error-codes';
 import type { ErrorCode } from '../http/error-codes';
-import { OrderViewSchema, PlaceOrderRequestSchema, PlaceOrderResponseSchema } from '../http/orders';
+import {
+  OrderListResponseSchema,
+  OrderViewSchema,
+  PlaceOrderRequestSchema,
+  PlaceOrderResponseSchema,
+} from '../http/orders';
 import {
   SubmitPaymentProofRequestSchema,
   SubmitPaymentProofResponseSchema,
@@ -274,6 +284,24 @@ component('PlaceOrderResponse', PlaceOrderResponseSchema, {
 component('OrderView', OrderViewSchema, {
   description:
     'A customer’s own order: immutable line snapshots, committed amounts, shipping address, delivery and gift choices, and the payment block carrying the QR payload and verification state.',
+});
+component('OrderListResponse', OrderListResponseSchema, {
+  description:
+    'The customer’s order history, newest first — each entry the same OrderView the detail page renders.',
+});
+
+// --- addresses --------------------------------------------------------------
+component('AddressCreateRequest', AddressCreateRequestSchema, {
+  description:
+    'A new address: the postal fields, the customer’s own label, and an isDefault intent. The first address is always the default; promoting one demotes the others, server-side.',
+});
+component('AddressUpdateRequest', AddressUpdateRequestSchema, {
+  description:
+    'A partial address edit (at least one field). isDefault:true promotes and demotes the others; isDefault:false is ignored, so a customer is never left with no default.',
+});
+component('AddressView', AddressViewSchema, {
+  description:
+    'A saved address with its ID — the same shape the account and checkout pages read directly.',
 });
 component('SubmitPaymentProofRequest', SubmitPaymentProofRequestSchema, {
   description:

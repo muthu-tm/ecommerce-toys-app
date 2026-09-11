@@ -3,8 +3,8 @@ import Link from 'next/link';
 import { content, features } from '@/lib/store';
 
 import { CartBadge } from './CartBadge';
+import { HeaderBell } from './HeaderBell';
 import { MobileNav } from './MobileNav';
-import { NotificationBell } from './NotificationBell';
 import { Wordmark } from './Wordmark';
 
 /**
@@ -103,12 +103,11 @@ export function SiteHeader() {
         </Link>
 
         {/*
-          The live notification bell. `uid` is null until client auth lands (Task 20), so
-          for now it renders the signed-out affordance — a link to the account area. The
-          subscription, unread badge, day-grouped feed and mark-read all activate the moment
-          a uid is supplied.
+          The live notification bell, wired to the auth context via `HeaderBell`. For a signed-in
+          customer it subscribes and shows the unread badge and day-grouped feed; signed out it is a
+          plain link to the account area.
         */}
-        <NotificationBell uid={null} />
+        <HeaderBell />
 
         <Link
           href="/cart"

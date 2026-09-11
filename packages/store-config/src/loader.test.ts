@@ -29,6 +29,8 @@ function validConfig(overrides: Record<string, unknown> = {}): Record<string, un
     'low_stock',
     'out_of_stock',
     'sweeper_anomaly',
+    'password_changed',
+    'address_added',
   ];
 
   return {

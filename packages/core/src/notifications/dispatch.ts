@@ -154,6 +154,7 @@ function interpolationValues(
   if ('carrier' in payload) values.carrier = payload.carrier;
   if ('trackingNo' in payload) values.trackingNo = payload.trackingNo;
   if ('sku' in payload) values.sku = payload.sku;
+  if ('addressLabel' in payload) values.addressLabel = payload.addressLabel;
 
   return values;
 }

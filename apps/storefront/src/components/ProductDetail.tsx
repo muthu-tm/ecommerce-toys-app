@@ -7,7 +7,8 @@ import { Breadcrumbs } from '@/components/Breadcrumbs';
 import type { GalleryImage } from '@/components/ProductGallery';
 import { ProductGallery } from '@/components/ProductGallery';
 import { VariantSelector } from '@/components/VariantSelector';
-import { content, mediaUrl, moneyFormat } from '@/lib/store';
+import { WishlistHeart } from '@/components/WishlistHeart';
+import { content, features, mediaUrl, moneyFormat } from '@/lib/store';
 
 /**
  * The product detail page body.
@@ -76,9 +77,12 @@ export function ProductDetail({ product, variants, categoryName }: ProductDetail
             <p className="font-body text-sm tracking-wide text-text-muted uppercase">
               {product.brand}
             </p>
-            <h1 className="font-display text-3xl leading-tight text-text-primary">
-              {product.name}
-            </h1>
+            <div className="flex items-start justify-between gap-2">
+              <h1 className="font-display text-3xl leading-tight text-text-primary">
+                {product.name}
+              </h1>
+              {features.wishlist ? <WishlistHeart productId={product.id} /> : null}
+            </div>
             {product.ratingCount > 0 && (
               <p className="font-body text-sm text-text-muted">
                 {product.ratingAvg.toFixed(1)} ·{' '}

@@ -275,6 +275,269 @@
         }
       }
     },
+    "/v1/addresses": {
+      "post": {
+        "summary": "Create an address (enforces the single-default invariant)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddressCreateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "The created address, with its server-decided default.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/AddressView"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/addresses/{id}": {
+      "parameters": [
+        {
+          "name": "id",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "patch": {
+        "summary": "Edit an address (promoting to default demotes the others)",
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "$ref": "#/components/schemas/AddressUpdateRequest"
+              }
+            }
+          }
+        },
+        "responses": {
+          "204": {
+            "description": "Address updated."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete an address (the current default cannot be deleted while others exist)",
+        "responses": {
+          "204": {
+            "description": "Address deleted."
+          },
+          "400": {
+            "description": "`VALIDATION_FAILED` (Validation failed) — https://romp.dev/errors/validation-failed",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/v1/wishlist/{productId}": {
+      "parameters": [
+        {
+          "name": "productId",
+          "in": "path",
+          "required": true,
+          "schema": {
+            "type": "string"
+          }
+        }
+      ],
+      "put": {
+        "summary": "Add a product to the wishlist (idempotent; feature-gated)",
+        "responses": {
+          "204": {
+            "description": "Product saved to the wishlist."
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a product from the wishlist (idempotent; feature-gated)",
+        "responses": {
+          "204": {
+            "description": "Product removed from the wishlist."
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "`NOT_FOUND` (Not found) — https://romp.dev/errors/not-found",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "`RATE_LIMITED` (Too many requests) — https://romp.dev/errors/rate-limited",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      }
+    },
     "/v1/admin/me": {
       "get": {
         "summary": "Admin profile and claim confirmation",
@@ -1515,6 +1778,31 @@
       }
     },
     "/v1/orders": {
+      "get": {
+        "summary": "The signed-in customer’s order history, newest first",
+        "responses": {
+          "200": {
+            "description": "The customer’s orders.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/OrderListResponse"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "`UNAUTHENTICATED` (Authentication required) — https://romp.dev/errors/unauthenticated",
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ProblemDetails"
+                }
+              }
+            }
+          }
+        }
+      },
       "post": {
         "summary": "Place the signed-in customer’s cart as an order (idempotent)",
         "requestBody": {
@@ -2588,7 +2876,9 @@
           "review.rejected",
           "inventory.low_stock",
           "inventory.out_of_stock",
-          "sweeper.anomaly"
+          "sweeper.anomaly",
+          "account.password_changed",
+          "account.address_added"
         ]
       },
       "NotificationType": {
@@ -2612,7 +2902,9 @@
           "review_published",
           "low_stock",
           "out_of_stock",
-          "sweeper_anomaly"
+          "sweeper_anomaly",
+          "password_changed",
+          "address_added"
         ]
       },
       "Audience": {
@@ -4354,6 +4646,229 @@
           "payment",
           "createdAt",
           "updatedAt"
+        ],
+        "additionalProperties": false
+      },
+      "OrderListResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/OrderListResponse",
+        "type": "object",
+        "properties": {
+          "orders": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/OrderView"
+            }
+          }
+        },
+        "required": [
+          "orders"
+        ],
+        "additionalProperties": false
+      },
+      "AddressCreateRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/AddressCreateRequest",
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "recipientName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "line1": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "line2": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "pincode": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{5}$"
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 30
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "required": [
+          "label",
+          "recipientName",
+          "line1",
+          "line2",
+          "city",
+          "state",
+          "pincode",
+          "phone",
+          "isDefault"
+        ],
+        "additionalProperties": false
+      },
+      "AddressUpdateRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/AddressUpdateRequest",
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "recipientName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "line1": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "line2": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "pincode": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{5}$"
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 30
+          },
+          "isDefault": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      },
+      "AddressView": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/AddressView",
+        "type": "object",
+        "properties": {
+          "label": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 40
+          },
+          "recipientName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "line1": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 200
+          },
+          "line2": {
+            "anyOf": [
+              {
+                "type": "string",
+                "maxLength": 200
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "city": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "state": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 100
+          },
+          "pincode": {
+            "type": "string",
+            "pattern": "^[1-9]\\d{5}$"
+          },
+          "phone": {
+            "type": "string",
+            "minLength": 4,
+            "maxLength": 30
+          },
+          "isDefault": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "updatedAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          }
+        },
+        "required": [
+          "label",
+          "recipientName",
+          "line1",
+          "line2",
+          "city",
+          "state",
+          "pincode",
+          "phone",
+          "isDefault",
+          "createdAt",
+          "updatedAt",
+          "id"
         ],
         "additionalProperties": false
       },

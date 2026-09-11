@@ -95,6 +95,51 @@ const paths = {
       },
     },
   },
+  '/v1/addresses': {
+    post: {
+      summary: 'Create an address (enforces the single-default invariant)',
+      requestBody: jsonBody('AddressCreateRequest'),
+      responses: {
+        201: jsonResponse('The created address, with its server-decided default.', 'AddressView'),
+        ...errorResponses(['VALIDATION_FAILED', 'UNAUTHENTICATED', 'RATE_LIMITED']),
+      },
+    },
+  },
+  '/v1/addresses/{id}': {
+    parameters: [{ name: 'id', in: 'path', required: true, schema: { type: 'string' } }],
+    patch: {
+      summary: 'Edit an address (promoting to default demotes the others)',
+      requestBody: jsonBody('AddressUpdateRequest'),
+      responses: {
+        204: { description: 'Address updated.' },
+        ...errorResponses(['VALIDATION_FAILED', 'UNAUTHENTICATED', 'NOT_FOUND', 'RATE_LIMITED']),
+      },
+    },
+    delete: {
+      summary: 'Delete an address (the current default cannot be deleted while others exist)',
+      responses: {
+        204: { description: 'Address deleted.' },
+        ...errorResponses(['VALIDATION_FAILED', 'UNAUTHENTICATED', 'NOT_FOUND', 'RATE_LIMITED']),
+      },
+    },
+  },
+  '/v1/wishlist/{productId}': {
+    parameters: [{ name: 'productId', in: 'path', required: true, schema: { type: 'string' } }],
+    put: {
+      summary: 'Add a product to the wishlist (idempotent; feature-gated)',
+      responses: {
+        204: { description: 'Product saved to the wishlist.' },
+        ...errorResponses(['UNAUTHENTICATED', 'NOT_FOUND', 'RATE_LIMITED']),
+      },
+    },
+    delete: {
+      summary: 'Remove a product from the wishlist (idempotent; feature-gated)',
+      responses: {
+        204: { description: 'Product removed from the wishlist.' },
+        ...errorResponses(['UNAUTHENTICATED', 'NOT_FOUND', 'RATE_LIMITED']),
+      },
+    },
+  },
   '/v1/admin/me': {
     get: {
       summary: 'Admin profile and claim confirmation',
@@ -349,6 +394,13 @@ const paths = {
     },
   },
   '/v1/orders': {
+    get: {
+      summary: 'The signed-in customer’s order history, newest first',
+      responses: {
+        200: jsonResponse('The customer’s orders.', 'OrderListResponse'),
+        ...errorResponses(['UNAUTHENTICATED']),
+      },
+    },
     post: {
       summary: 'Place the signed-in customer’s cart as an order (idempotent)',
       requestBody: jsonBody('PlaceOrderRequest'),

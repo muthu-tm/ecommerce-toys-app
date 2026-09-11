@@ -71,6 +71,8 @@ export * from './repositories/refund-write';
 export * from './repositories/fulfilment-write';
 export * from './repositories/cancel-write';
 export * from './repositories/analytics-write';
+export * from './repositories/address-write';
+export * from './repositories/wishlist-write';
 export * from './repositories/inventory-write';
 export * from './repositories/accounts';
 export * from './repositories/identity';

@@ -109,6 +109,10 @@ export const RATE_LIMITS = {
   // Cart writes: a shopper adds, adjusts and removes lines freely, so the ceiling is generous,
   // but bounded so a script cannot hammer the availability-checking write path.
   cartWrite: { limit: 120, windowSeconds: 60 },
+  // Account writes — address CRUD and wishlist toggles. Generous, since editing addresses or
+  // toggling hearts is legitimately interactive, but bounded per customer so a runaway client or a
+  // compromised token cannot churn the account subcollections.
+  accountWrite: { limit: 120, windowSeconds: 60 },
   default: { limit: 120, windowSeconds: 60 },
 } as const satisfies Record<string, RateLimitRule>;
 

@@ -44,4 +44,9 @@ export const NOTIFICATION_ROUTES: Readonly<Record<EventType, NotificationRoute>>
   'inventory.low_stock': { customer: null, admin: 'low_stock' },
   'inventory.out_of_stock': { customer: null, admin: 'out_of_stock' },
   'sweeper.anomaly': { customer: null, admin: 'sweeper_anomaly' },
+  // Account-security facts go to the customer's own feed only — the point is that the real
+  // owner sees a change they may not have made. There is no admin interest in one customer
+  // changing their password, and routing it to staff would be noise and a privacy leak.
+  'account.password_changed': { customer: 'password_changed', admin: null },
+  'account.address_added': { customer: 'address_added', admin: null },
 });

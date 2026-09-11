@@ -9,6 +9,7 @@ import { createMemoryIdempotencyStore } from './plugins/idempotency';
 import type { IdempotencyStore } from './plugins/idempotency';
 import { createRateLimiter } from './plugins/rate-limit';
 import type { RateLimiter } from './plugins/rate-limit';
+import { registerAddressRoutes } from './routes/addresses';
 import { registerAdminRoutes } from './routes/admin';
 import { registerAdminAnalyticsRoutes } from './routes/admin-analytics';
 import { registerAdminOrderRoutes } from './routes/admin-orders';
@@ -19,6 +20,7 @@ import { registerCheckoutRoutes } from './routes/checkout';
 import { registerMeRoutes } from './routes/me';
 import { registerOrderRoutes } from './routes/orders';
 import { registerProductRoutes } from './routes/products';
+import { registerWishlistRoutes } from './routes/wishlist';
 import { COMMIT, VERSION } from './version';
 
 /**
@@ -86,6 +88,8 @@ export async function buildApp(deps: ApiDeps, options: BuildAppOptions = {}): Pr
   // ceilings and schemas sit beside the handlers rather than in a global config.
   registerAuthRoutes(app);
   registerMeRoutes(app);
+  registerAddressRoutes(app);
+  registerWishlistRoutes(app);
   registerAdminRoutes(app);
   registerProductRoutes(app);
   registerCategoryRoutes(app);

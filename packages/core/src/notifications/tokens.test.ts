@@ -76,7 +76,14 @@ describe('allowedTokensByNotificationType', () => {
 
   it('never allows a token outside the known interpolation vocabulary', () => {
     // The union of every allow-set is exactly the tokens the dispatcher can interpolate.
-    const vocabulary = new Set(['orderRef', 'amount', 'carrier', 'trackingNo', 'sku']);
+    const vocabulary = new Set([
+      'orderRef',
+      'amount',
+      'carrier',
+      'trackingNo',
+      'sku',
+      'addressLabel',
+    ]);
     const allowed = allowedTokensByNotificationType();
 
     for (const tokens of Object.values(allowed)) {

@@ -50,10 +50,22 @@ export const EventTypeSchema = z.enum([
   'inventory.low_stock',
   'inventory.out_of_stock',
   'sweeper.anomaly',
+  // Account-security facts. A customer's own feed carries them so a takeover is visible: if
+  // an attacker changes the password or adds a delivery address, the real owner sees it
+  // (`IDENTITY.md § takeover visibility`). They notify the customer only.
+  'account.password_changed',
+  'account.address_added',
 ]);
 export type EventType = z.infer<typeof EventTypeSchema>;
 
-export const EventSubjectKindSchema = z.enum(['order', 'product', 'variant', 'review', 'refund']);
+export const EventSubjectKindSchema = z.enum([
+  'order',
+  'product',
+  'variant',
+  'review',
+  'refund',
+  'account',
+]);
 export type EventSubjectKind = z.infer<typeof EventSubjectKindSchema>;
 
 /**
@@ -159,6 +171,16 @@ export const EventPayloadSchema = z.discriminatedUnion('type', [
     detail: z.string().min(1).max(1_000),
     affectedCount: z.int().nonnegative(),
   }),
+  z.object({
+    type: z.literal('account.password_changed'),
+    userId: UidSchema,
+  }),
+  z.object({
+    type: z.literal('account.address_added'),
+    userId: UidSchema,
+    /** The customer's own label for the address, so the notification can name which one. */
+    addressLabel: z.string().min(1).max(40),
+  }),
 ]);
 export type EventPayload = z.infer<typeof EventPayloadSchema>;
 
@@ -211,6 +233,8 @@ export const EVENT_SUBJECT_KIND: Readonly<Record<EventType, EventSubjectKind>> =
   'inventory.low_stock': 'variant',
   'inventory.out_of_stock': 'variant',
   'sweeper.anomaly': 'order',
+  'account.password_changed': 'account',
+  'account.address_added': 'account',
 });
 
 /** Notification audiences. */
@@ -241,5 +265,7 @@ export const NotificationTypeSchema = z.enum([
   'low_stock',
   'out_of_stock',
   'sweeper_anomaly',
+  'password_changed',
+  'address_added',
 ]);
 export type NotificationType = z.infer<typeof NotificationTypeSchema>;

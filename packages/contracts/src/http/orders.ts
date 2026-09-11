@@ -84,3 +84,15 @@ export const OrderViewSchema = z.object({
   updatedAt: InstantSchema,
 });
 export type OrderView = z.infer<typeof OrderViewSchema>;
+
+/**
+ * The customer's order history — the response of `GET /v1/orders`.
+ *
+ * Their own orders, newest first, each the same `OrderView` the detail page renders, so the history
+ * list and a single order never disagree about a status or a total. Wrapped in an object rather than
+ * a bare array so the shape can grow a cursor later without a breaking change.
+ */
+export const OrderListResponseSchema = z.object({
+  orders: z.array(OrderViewSchema),
+});
+export type OrderListResponse = z.infer<typeof OrderListResponseSchema>;
