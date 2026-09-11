@@ -4,7 +4,7 @@ import { notFound } from 'next/navigation';
 import { ProductDetail } from '@/components/ProductDetail';
 import { mediaUrl } from '@/lib/store';
 import { productJsonLd } from '@/lib/structured-data';
-import { getCategory, getProduct } from '@/server/catalogue';
+import { getCategory, getProduct, getProductReviews } from '@/server/catalogue';
 
 /**
  * The product detail page: `/p/{slug}`.
@@ -85,6 +85,8 @@ export default async function ProductPage({ params }: ProductPageProps) {
   const category = await getCategory(product.categorySlug);
   const categoryName = category?.name ?? product.categorySlug;
 
+  const reviews = await getProductReviews(product.id, product.slug);
+
   const canonical = `${siteUrl}/p/${product.slug}`;
   const jsonLd = productJsonLd(product, variants, canonical);
 
@@ -99,7 +101,12 @@ export default async function ProductPage({ params }: ProductPageProps) {
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <ProductDetail product={product} variants={variants} categoryName={categoryName} />
+      <ProductDetail
+        product={product}
+        variants={variants}
+        categoryName={categoryName}
+        reviews={reviews}
+      />
     </>
   );
 }

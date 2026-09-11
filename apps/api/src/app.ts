@@ -13,6 +13,7 @@ import { registerAddressRoutes } from './routes/addresses';
 import { registerAdminRoutes } from './routes/admin';
 import { registerAdminAnalyticsRoutes } from './routes/admin-analytics';
 import { registerAdminOrderRoutes } from './routes/admin-orders';
+import { registerAdminReviewRoutes } from './routes/admin-reviews';
 import { registerAuthRoutes } from './routes/auth';
 import { registerCartRoutes } from './routes/cart';
 import { registerCategoryRoutes } from './routes/categories';
@@ -20,6 +21,7 @@ import { registerCheckoutRoutes } from './routes/checkout';
 import { registerMeRoutes } from './routes/me';
 import { registerOrderRoutes } from './routes/orders';
 import { registerProductRoutes } from './routes/products';
+import { registerReviewRoutes } from './routes/reviews';
 import { registerWishlistRoutes } from './routes/wishlist';
 import { COMMIT, VERSION } from './version';
 
@@ -90,6 +92,7 @@ export async function buildApp(deps: ApiDeps, options: BuildAppOptions = {}): Pr
   registerMeRoutes(app);
   registerAddressRoutes(app);
   registerWishlistRoutes(app);
+  registerReviewRoutes(app);
   registerAdminRoutes(app);
   registerProductRoutes(app);
   registerCategoryRoutes(app);
@@ -97,6 +100,7 @@ export async function buildApp(deps: ApiDeps, options: BuildAppOptions = {}): Pr
   registerCheckoutRoutes(app);
   registerOrderRoutes(app);
   registerAdminOrderRoutes(app);
+  registerAdminReviewRoutes(app);
   registerAdminAnalyticsRoutes(app);
 
   return app;

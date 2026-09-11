@@ -4926,6 +4926,348 @@
         ],
         "additionalProperties": false
       },
+      "ReviewSubmitRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReviewSubmitRequest",
+        "type": "object",
+        "properties": {
+          "productId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "rating": {
+            "$ref": "#/components/schemas/Rating"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          }
+        },
+        "required": [
+          "productId",
+          "rating",
+          "title",
+          "body"
+        ],
+        "additionalProperties": false
+      },
+      "PublicReviewView": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/PublicReviewView",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "productId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "authorName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "rating": {
+            "$ref": "#/components/schemas/Rating"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "verifiedPurchase": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "authorName",
+          "rating",
+          "title",
+          "body",
+          "verifiedPurchase",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewListResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReviewListResponse",
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/PublicReviewView"
+            }
+          }
+        },
+        "required": [
+          "reviews"
+        ],
+        "additionalProperties": false
+      },
+      "OwnReviewView": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReviewSubmitResponse",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "productId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "authorName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "rating": {
+            "$ref": "#/components/schemas/Rating"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "verifiedPurchase": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "authorName",
+          "rating",
+          "title",
+          "body",
+          "verifiedPurchase",
+          "createdAt",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewSubmitResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReviewSubmitResponse",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "productId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "authorName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "rating": {
+            "$ref": "#/components/schemas/Rating"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "verifiedPurchase": {
+            "type": "boolean"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "authorName",
+          "rating",
+          "title",
+          "body",
+          "verifiedPurchase",
+          "createdAt",
+          "status"
+        ],
+        "additionalProperties": false
+      },
+      "OwnReviewListResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/OwnReviewListResponse",
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ReviewSubmitResponse"
+            }
+          }
+        },
+        "required": [
+          "reviews"
+        ],
+        "additionalProperties": false
+      },
+      "ModerationReviewView": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ModerationReviewView",
+        "type": "object",
+        "properties": {
+          "id": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "productId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "userId": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 1500
+          },
+          "authorName": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "rating": {
+            "$ref": "#/components/schemas/Rating"
+          },
+          "title": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 120
+          },
+          "body": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 4000
+          },
+          "status": {
+            "$ref": "#/components/schemas/ReviewStatus"
+          },
+          "verifiedPurchase": {
+            "type": "boolean"
+          },
+          "orderId": {
+            "anyOf": [
+              {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 1500
+              },
+              {
+                "type": "null"
+              }
+            ]
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "date-time"
+          }
+        },
+        "required": [
+          "id",
+          "productId",
+          "userId",
+          "authorName",
+          "rating",
+          "title",
+          "body",
+          "status",
+          "verifiedPurchase",
+          "orderId",
+          "createdAt"
+        ],
+        "additionalProperties": false
+      },
+      "ModerationQueueResponse": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ModerationQueueResponse",
+        "type": "object",
+        "properties": {
+          "reviews": {
+            "type": "array",
+            "items": {
+              "$ref": "#/components/schemas/ModerationReviewView"
+            }
+          }
+        },
+        "required": [
+          "reviews"
+        ],
+        "additionalProperties": false
+      },
+      "ReviewRejectRequest": {
+        "$schema": "https://json-schema.org/draft/2020-12/schema",
+        "$id": "#/components/schemas/ReviewRejectRequest",
+        "type": "object",
+        "properties": {
+          "reason": {
+            "type": "string",
+            "minLength": 1,
+            "maxLength": 500
+          }
+        },
+        "required": [
+          "reason"
+        ],
+        "additionalProperties": false
+      },
       "VerifyPaymentRequest": {
         "$schema": "https://json-schema.org/draft/2020-12/schema",
         "$id": "#/components/schemas/VerifyPaymentRequest",

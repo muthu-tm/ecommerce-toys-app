@@ -5,6 +5,11 @@ node_modules/
 # build output
 dist/
 lib/
+# `lib/` above targets compiled output (e.g. apps/api builds to lib/). It must not
+# swallow `src/lib/`, which is real application source in the Next.js apps — the same
+# distinction the ESLint ignore draws (`lib/**` not `**/lib/**`).
+!**/src/lib/
+!**/src/lib/**
 .next/
 out/
 *.tsbuildinfo
@@ -22,7 +27,13 @@ playwright-report/
 .env
 .env.*
 !.env.example
+!.env.*.example
 *.local
+
+# local e2e orchestrator runtime (pids, logs)
+.e2e/
+# playwright cross-project handoff state
+apps/e2e/.e2e-state/
 
 # firebase
 .firebase/

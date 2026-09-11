@@ -23,6 +23,7 @@ export {
 export type { PasswordAssessment, PasswordContext } from './identity';
 
 export {
+  applyRatingAggregateDelta,
   applyStockDelta,
   cacheTags,
   canBeActive,
@@ -30,6 +31,7 @@ export {
   deriveSlug,
   normaliseMediaOrder,
   planProductCountChanges,
+  planRatingAggregateChange,
   productSearchParts,
   resolveStatusTransition,
   slugify,
@@ -44,10 +46,13 @@ export type {
   ApplyStockDeltaResult,
   CategoryParentRefusal,
   CountableProduct,
+  CountableReview,
   MediaFinalizeDecision,
   MediaQuarantineReason,
   ProductCountDelta,
   ProductPricing,
+  RatingAggregate,
+  RatingAggregateDelta,
   StatusTransition,
   StatusTransitionResult,
   StockByWarehouse,

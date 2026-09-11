@@ -10,6 +10,7 @@ import type {
   ProductDoc,
   ProductQuery,
   ProductSummary,
+  PublicReviewView,
   VariantOption,
 } from '@romp/contracts';
 import {
@@ -19,6 +20,7 @@ import {
   findProductBySlug,
   firestoreSearchPort,
   listNavCategories,
+  listPublishedReviews,
   listVariantOptions,
   systemClock,
 } from '@romp/data';
@@ -144,6 +146,40 @@ export const getProduct = cache(
         return { product, variants };
       },
       ['product', slug],
+      { tags: [cacheTags.product(slug), cacheTags.catalogue] },
+    )();
+  },
+);
+
+/**
+ * The published reviews for a product, newest first — the PDP review list.
+ *
+ * Read as `ANONYMOUS`, so it returns only `published` reviews, matching what an unauthenticated
+ * visitor may see. The `body` is carried **raw**; it is escaped by React at render and never reaches
+ * `dangerouslySetInnerHTML`. Tagged under the product so a product edit refreshes it; a newly
+ * published review otherwise appears within the revalidation window (an ISR review list does not need
+ * to be instant, and moderation is not a real-time surface).
+ */
+export const getProductReviews = cache(
+  (productId: string, slug: string): Promise<readonly PublicReviewView[]> => {
+    if (globalThis.__ROMP_TEST_SEARCH_PORT === undefined && !catalogueAvailable()) {
+      return Promise.resolve([]);
+    }
+    return unstable_cache(
+      async () => {
+        const reviews = await listPublishedReviews(context(), productId);
+        return reviews.map((review) => ({
+          id: review.id as PublicReviewView['id'],
+          productId: review.productId,
+          authorName: review.authorName,
+          rating: review.rating,
+          title: review.title,
+          body: review.body,
+          verifiedPurchase: review.verifiedPurchase,
+          createdAt: review.createdAt,
+        }));
+      },
+      ['product-reviews', productId],
       { tags: [cacheTags.product(slug), cacheTags.catalogue] },
     )();
   },

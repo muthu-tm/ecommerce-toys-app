@@ -78,6 +78,17 @@ import {
   ProblemDetailsSchema,
   ValidationIssueSchema,
 } from '../http/problem';
+import {
+  ModerationQueueResponseSchema,
+  ModerationReviewViewSchema,
+  OwnReviewListResponseSchema,
+  OwnReviewViewSchema,
+  PublicReviewViewSchema,
+  ReviewListResponseSchema,
+  ReviewRejectRequestSchema,
+  ReviewSubmitRequestSchema,
+  ReviewSubmitResponseSchema,
+} from '../http/reviews';
 import { BasisPointsSchema } from '../primitives/basis-points';
 import {
   E164PhoneSchema,
@@ -310,6 +321,40 @@ component('SubmitPaymentProofRequest', SubmitPaymentProofRequestSchema, {
 component('SubmitPaymentProofResponse', SubmitPaymentProofResponseSchema, {
   description:
     'Confirms the order moved to pending_verification and records when the reference was submitted. The normalised reference is not echoed.',
+});
+
+// --- reviews ----------------------------------------------------------------
+component('ReviewSubmitRequest', ReviewSubmitRequestSchema, {
+  description:
+    'A new review: the product, a whole-star rating, a title and the raw body. The server derives the author-name snapshot, the verified-purchase badge from the customer’s paid orders, and the pending status.',
+});
+component('PublicReviewView', PublicReviewViewSchema, {
+  description:
+    'A published review as the storefront renders it — the author’s display name, rating and text, and whether the purchase was verified. No userId or moderation trail.',
+});
+component('ReviewListResponse', ReviewListResponseSchema, {
+  description: 'Published reviews for a product, newest first — the product page review list.',
+});
+component('OwnReviewView', OwnReviewViewSchema, {
+  description:
+    'A review as its own author sees it — the public projection plus the status, so a pending review reads as received. The rejection reason is never surfaced.',
+});
+component('ReviewSubmitResponse', ReviewSubmitResponseSchema, {
+  description: 'The author’s own view of the pending review just created.',
+});
+component('OwnReviewListResponse', OwnReviewListResponseSchema, {
+  description: 'A customer’s own reviews across products, in any status — the account list.',
+});
+component('ModerationReviewView', ModerationReviewViewSchema, {
+  description:
+    'A review as the moderation queue shows it — the author’s uid and verified-purchase evidence alongside the text, for a moderator’s decision.',
+});
+component('ModerationQueueResponse', ModerationQueueResponseSchema, {
+  description: 'The moderation queue, oldest first — reviews awaiting a decision.',
+});
+component('ReviewRejectRequest', ReviewRejectRequestSchema, {
+  description:
+    'The reason a review was rejected, recorded for the moderation audit and never shown to the author. Publishing carries no body.',
 });
 
 // --- admin orders & money ---------------------------------------------------

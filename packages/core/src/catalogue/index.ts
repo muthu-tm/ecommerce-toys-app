@@ -17,6 +17,8 @@ export type {
 export type { AllowedImageType } from './image';
 export { decideMediaFinalize } from './media-finalize';
 export type { MediaFinalizeDecision, MediaQuarantineReason } from './media-finalize';
+export { applyRatingAggregateDelta, planRatingAggregateChange } from './review-aggregate';
+export type { CountableReview, RatingAggregate, RatingAggregateDelta } from './review-aggregate';
 export { deriveSlug, slugify } from './slug';
 export {
   canBeActive,

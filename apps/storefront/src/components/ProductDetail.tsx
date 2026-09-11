@@ -1,4 +1,4 @@
-import type { ProductDoc, VariantOption } from '@romp/contracts';
+import type { ProductDoc, PublicReviewView, VariantOption } from '@romp/contracts';
 import type { WithId } from '@romp/data';
 import { renderTemplate } from '@romp/store-config';
 import { Badge } from '@romp/ui';
@@ -6,6 +6,8 @@ import { Badge } from '@romp/ui';
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import type { GalleryImage } from '@/components/ProductGallery';
 import { ProductGallery } from '@/components/ProductGallery';
+import { ReviewForm } from '@/components/ReviewForm';
+import { ReviewList, reviewsHeading } from '@/components/ReviewList';
 import { VariantSelector } from '@/components/VariantSelector';
 import { WishlistHeart } from '@/components/WishlistHeart';
 import { content, features, mediaUrl, moneyFormat } from '@/lib/store';
@@ -30,6 +32,8 @@ export interface ProductDetailProps {
   readonly variants: readonly VariantOption[];
   /** The product's category name, for the breadcrumb trail. */
   readonly categoryName: string;
+  /** The product's published reviews, newest first. */
+  readonly reviews: readonly PublicReviewView[];
 }
 
 /** Resolves a product's media to gallery images, dropping any with no reachable URL. */
@@ -51,7 +55,7 @@ function toGalleryImages(product: ProductDoc): readonly GalleryImage[] {
     });
 }
 
-export function ProductDetail({ product, variants, categoryName }: ProductDetailProps) {
+export function ProductDetail({ product, variants, categoryName, reviews }: ProductDetailProps) {
   const copy = content.product;
   const images = toGalleryImages(product);
 
@@ -157,6 +161,17 @@ export function ProductDetail({ product, variants, categoryName }: ProductDetail
           </section>
         )}
       </div>
+
+      <section aria-labelledby="pdp-reviews" className="flex flex-col gap-6">
+        <h2 id="pdp-reviews" className="font-display text-xl text-text-primary">
+          {reviewsHeading(reviews.length)}
+        </h2>
+        <ReviewList reviews={reviews} />
+        <div className="max-w-xl">
+          <h3 className="mb-3 font-display text-lg text-text-primary">{copy.reviews.writeCta}</h3>
+          <ReviewForm productId={product.id} />
+        </div>
+      </section>
     </article>
   );
 }

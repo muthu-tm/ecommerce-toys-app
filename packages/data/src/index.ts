@@ -73,6 +73,8 @@ export * from './repositories/cancel-write';
 export * from './repositories/analytics-write';
 export * from './repositories/address-write';
 export * from './repositories/wishlist-write';
+export * from './repositories/review-write';
+export * from './repositories/review-aggregate-write';
 export * from './repositories/inventory-write';
 export * from './repositories/accounts';
 export * from './repositories/identity';
