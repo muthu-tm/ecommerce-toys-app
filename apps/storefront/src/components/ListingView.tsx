@@ -1,73 +1,129 @@
 import type { ProductQuery } from '@romp/contracts';
+import { EmptyState, PageHeader } from '@romp/ui';
 
-import { EmptyState } from '@/components/EmptyState';
 import { ListingControls } from '@/components/ListingControls';
+import { ListingFilters } from '@/components/ListingFilters';
 import { Pagination } from '@/components/Pagination';
 import { ProductGrid } from '@/components/ProductGrid';
-import { parseListingParams, preservedParams } from '@/lib/listing';
+import {
+  type ListingFixedFilter,
+  mergeListingQuery,
+  parseListingParams,
+  preservedParams,
+} from '@/lib/listing';
 import { content } from '@/lib/store';
-import { searchProducts } from '@/server/catalogue';
+import { facets, getFilterCategories, searchProducts } from '@/server/catalogue';
 
 /**
  * The shared body of every listing page.
  *
- * The category page and the age-band page differ only in their heading, their canonical
- * URL and the one filter they fix — so the query building, the controls, the grid, the
- * empty state and the pagination all live here, and each route is a thin wrapper that
- * supplies the fixed filter and the copy.
+ * The category page, the age-band page and search differ only in their heading, their
+ * canonical URL and the filter they fix — so the query building, the sidebar, the grid,
+ * the empty state and the pagination all live here.
  *
  * A server component: it reads the query, runs the search server-side, and renders the
- * result. The only client island inside it is `ListingControls`, which writes the URL.
+ * result. The client islands are `ListingControls` (sort) and `ListingFilters` (sidebar
+ * / mobile sheet), which write the URL.
  */
+
 export interface ListingViewProps {
-  /** The page's own heading. */
   readonly title: string;
-  /** The route path without query string, for pagination links, e.g. `/c/wooden`. */
   readonly basePath: string;
-  /** Search params from the route, already narrowed by the page. */
   readonly searchParams: Readonly<Record<string, string | string[] | undefined>>;
-  /**
-   * The filter this route fixes — a category or an age band. Merged into the parsed
-   * query, so the route decides what is being listed and the shared code decides how.
-   */
-  readonly fixedFilter: { readonly categorySlugs: string[] } | { readonly ageBands: string[] };
+  readonly fixedFilter?: ListingFixedFilter;
 }
 
 export async function ListingView({
   title,
   basePath,
   searchParams,
-  fixedFilter,
+  fixedFilter = {},
 }: ListingViewProps) {
   const parsed = parseListingParams(searchParams);
-  const query: ProductQuery = { ...parsed.query, ...fixedFilter };
+  const query: ProductQuery = mergeListingQuery(parsed, fixedFilter);
 
-  const page = await searchProducts(query);
+  const [page, counts, filterCategories] = await Promise.all([
+    searchProducts(query),
+    facets(query),
+    getFilterCategories(),
+  ]);
   const params = preservedParams(parsed);
+
+  const lockedCategory =
+    fixedFilter.categorySlugs?.length === 1 ? fixedFilter.categorySlugs[0] : undefined;
+  const lockedAge = fixedFilter.ageBands?.length === 1 ? fixedFilter.ageBands[0] : undefined;
+
+  const categoryOptions = filterCategories.map((category) => ({
+    slug: category.slug,
+    name: category.name,
+    count: counts.countedDimensions.includes('categories')
+      ? (counts.categories[category.slug] ?? 0)
+      : null,
+  }));
+
+  const filterProps = {
+    selectedCategories: query.categorySlugs ?? [],
+    selectedAges: query.ageBands ?? [],
+    categories: categoryOptions,
+    minPrice: parsed.query.price?.minMinor,
+    maxPrice: parsed.query.price?.maxMinor,
+    inStockOnly: parsed.inStockOnly,
+    ...(lockedCategory === undefined ? {} : { lockedCategory }),
+    ...(lockedAge === undefined ? {} : { lockedAge }),
+  };
+
+  const hasActiveFilters =
+    parsed.inStockOnly ||
+    parsed.query.price !== undefined ||
+    parsed.categorySlugs.length > 0 ||
+    parsed.ageBands.length > 0;
 
   return (
     <div className="flex flex-col gap-6">
-      <h1 className="font-display text-3xl text-text-primary">{title}</h1>
+      <PageHeader
+        title={title}
+        actions={
+          <div className="flex flex-wrap items-center gap-3">
+            <ListingFilters {...filterProps} placement="toolbar" />
+            <ListingControls sort={parsed.sort} />
+          </div>
+        }
+      />
 
-      <ListingControls sort={parsed.sort} inStockOnly={parsed.inStockOnly} />
+      <div className="grid items-start gap-8 lg:grid-cols-[16rem_minmax(0,1fr)]">
+        <aside className="hidden lg:block lg:sticky lg:top-24">
+          <ListingFilters {...filterProps} placement="sidebar" />
+        </aside>
 
-      {page.items.length === 0 ? (
-        // Copy from config, so a second store's "no results" reads in its own voice.
-        <EmptyState
-          title={content.emptyStates.noResults.title}
-          body={content.emptyStates.noResults.body}
-        />
-      ) : (
-        <>
-          <ProductGrid products={page.items} />
-          <Pagination
-            basePath={basePath}
-            params={params}
-            nextCursor={page.nextCursor}
-            hasCursor={parsed.query.cursor !== undefined}
-          />
-        </>
-      )}
+        <div className="flex min-w-0 flex-col gap-6">
+          {page.items.length === 0 ? (
+            <EmptyState
+              title={content.emptyStates.noResults.title}
+              body={content.emptyStates.noResults.body}
+              action={
+                hasActiveFilters ? (
+                  <a
+                    href={basePath}
+                    className="font-body text-sm font-semibold text-primary underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                  >
+                    Clear filters
+                  </a>
+                ) : undefined
+              }
+            />
+          ) : (
+            <>
+              <ProductGrid products={page.items} />
+              <Pagination
+                basePath={basePath}
+                params={params}
+                nextCursor={page.nextCursor}
+                hasCursor={parsed.query.cursor !== undefined}
+              />
+            </>
+          )}
+        </div>
+      </div>
     </div>
   );
 }

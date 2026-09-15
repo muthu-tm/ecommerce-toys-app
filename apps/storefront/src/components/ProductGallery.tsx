@@ -3,7 +3,7 @@
 import Image from 'next/image';
 import { useState } from 'react';
 
-import { cn } from '@romp/ui';
+import { InitialTile, cn } from '@romp/ui';
 
 /**
  * The product image gallery.
@@ -48,12 +48,7 @@ export function ProductGallery({ images, productName }: ProductGalleryProps) {
         {active === null ? (
           // No photography yet — the honest state of a freshly seeded store. A large,
           // calm placeholder rather than a broken image.
-          <span
-            aria-hidden="true"
-            className="flex h-full w-full items-center justify-center font-display text-6xl text-text-muted"
-          >
-            {productName.slice(0, 1)}
-          </span>
+          <InitialTile name={productName} size="xl" />
         ) : (
           <Image
             key={active.url}

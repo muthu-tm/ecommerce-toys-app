@@ -63,4 +63,5 @@ Thumbs.db
 npm-debug.log*
 pnpm-debug.log*
 apps/*/public/brand/
+apps/*/public/media/
 next-env.d.ts

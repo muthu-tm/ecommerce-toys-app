@@ -22,7 +22,18 @@ Rules for this document:
 | Current phase  | Phase 7 — Account and social                   |
 | Current task   | Task 21 — Reviews with moderation              |
 | Blocked        | Nothing in code; account-level actions pending |
-| Last updated   | 2026-09-09                                     |
+| Last updated   | 2026-09-12                                     |
+
+**Post-Task-21 UI overhaul (2026-09-11).** A cross-cutting pass over both apps: light/dark theming,
+richer visuals, placeholder product imagery, and the admin login gate that was the outstanding admin
+half of Task 20. See [the UI overhaul section](#ui-overhaul-2026-09-11) below.
+
+**Manual-E2E portal pass (2026-09-12).** The running emulator stack could SSR the catalogue but
+browser Auth was talking to Google: Next.js does not inline `NEXT_PUBLIC_*` when they are read
+off a passed `process.env` object. Login, register and the notification bell were therefore
+hitting `identitytoolkit.googleapis.com` with the synthetic `emulator-api-key`. The same pass
+moves categories out of the header (they are listing filters, matching `ROMP Toy Store.html`)
+and adds `/search`. See [the portal pass section](#manual-e2e-portal-pass-2026-09-12) below.
 
 **Outstanding account-level actions.** These need the owner's Google and GitHub accounts, so they are
 scripted and documented but not executed:
@@ -1346,6 +1357,79 @@ storefront and backoffice screens.
 
 ---
 
+## UI overhaul (2026-09-11)
+
+A cross-cutting UI pass over both apps, done as a single sequenced effort rather than a numbered v1.0
+task. It closes two things the running stack surfaced: the backoffice had no sign-in surface, and the
+seeded catalogue rendered letter placeholders with a lean, single-theme look.
+
+**What shipped, and how to see it.**
+
+| Area                    | Change                                                                                                                                                       |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Design tokens           | New optional `surfaceElevated` colour (falls back to `surface`); `@romp/ui` gained `PageHeader`, `Section`, `Stack`, `Stat`, `InitialTile`, `EmptyState`     |
+| Light + dark theme      | `theme.modes { light, dark }` + `theme.defaultMode`; emitter writes `[data-theme]` overrides + a `prefers-color-scheme` fallback; `ThemeProvider`/`ThemeToggle` with a no-flash init script, wired into both headers |
+| Placeholder imagery     | Nine brand-consistent SVGs in `stores/romp/assets/catalogue/` seeded as product `media`; `pnpm store:tokens` copies them to `public/media`; `NEXT_PUBLIC_MEDIA_BASE_URL=/media` serves them same-origin in local dev |
+| Storefront polish       | Home hero/rails/age/trust, listing, PDP, cart, checkout (two-column), order confirmation, account pages — all on the shared primitives, image-rich, both themes |
+| **Admin login gate**    | `signInWithIdentifier`/`onUidChanged`/`signOutOperator`, an `AuthProvider` that checks the operator claim via `GET /v1/admin/me`, a `LoginForm`, and an `AdminGate` rendering login / "for store staff" / the app |
+| Admin polish            | Product list thumbnails, grouped product form, icon-button category rows, `Stat`-based dashboard, carded order/review rows                                    |
+| Auth screens            | Storefront sign-in/register in a branded `AuthShell` with a password-strength meter; admin login in the gate card                                            |
+
+**Demo.** `pnpm verify` is green (43 tasks, incl. the emulator + rules suites). `pnpm store:tokens`
+emits valid dual palettes for **both** `romp` and `_template`, each contrast-gated in **both** modes.
+`pnpm e2e start` brings up an image-rich storefront and a login-gated backoffice; the theme toggle in
+either header flips light/dark with no flash on reload; a seeded owner signs in through the real admin
+login form and reaches the backoffice.
+
+**Notes.**
+
+- **The admin login gate was the outstanding admin half of Task 20.** Task 20 shipped the customer
+  sign-in surface and app-wide auth context; the backoffice was left rendering straight into the
+  product list with `operatorToken()` always null, every write control inert. This pass builds the
+  mirror surface for the operator: sign-in, an auth context, and a gate that verifies the role claim
+  server-side (`GET /v1/admin/me`) rather than trusting the client. A signed-in customer without the
+  claim gets a clear "this area is for store staff", not a blank screen or a redirect loop — the
+  distinction `IDENTITY.md` insists on.
+- **Both palettes are contrast-gated, not just the dark one.** The loader runs the WCAG-AA gate over
+  `theme.colors` and, when a store ships `theme.modes`, over both the light and dark palettes
+  independently. ROMP's light palette turns the acid lime into a deep olive-chartreuse so it clears AA
+  as text on white (prices, links), and swaps the focus ring to indigo because lime is invisible on a
+  light surface — both measured against the gate, not chosen by eye.
+- **The wordmark cannot mismatch its surface.** The emitter emits `.theme-dark-only` /
+  `.theme-light-only` visibility utilities driven by the same `data-theme`/`prefers-color-scheme` logic
+  as the palette, and the wordmark renders both ink variants; CSS shows the one matching the active
+  theme. A single-theme store resolves to one unconditional rule.
+- **Placeholder art is development-only and never bypasses the media pipeline.** The seeded SVGs are
+  copied into each app's `public/media` and served under a `/media` base for local dev; real
+  photography still arrives through the admin register+finalize pipeline, which overwrites them. A
+  store that ships no `media` (for example `_template`) still renders the `InitialTile` placeholder.
+
+## Manual E2E portal pass (2026-09-12)
+
+Fixes that blocked clicking through the emulator stack, done before Phase 8.
+
+**What shipped.**
+
+| Area | Change |
+| ---- | ------ |
+| Client Auth emulator | `emulatorConfig()` now reads each `NEXT_PUBLIC_*` as a static `process.env.*` access so Next inlines them into the browser bundle. The synthetic `emulator-api-key` also forces emulator mode, so that key can never be sent to Google. |
+| Header | Chrome only: Shop by age, All toys, search, account, bell, bag. Categories are not nav destinations. |
+| Listing sidebar | Age chips, price presets, category checkboxes with facet counts, in-stock — URL search params, matching `ROMP Toy Store.html`. Mobile opens the same fields in a dialog. |
+| Search | Header form submits to `/search?q=`, served through the existing prefix `SearchPort`. |
+| Admin shell | Signed-in operators get a left rail (Overview, Orders, Products, Categories, Reviews) matching `ROMP Toy Store.html`. Login stays a slim bar with no section links. Phone: hamburger → dialog. Prototype-only items (Discounts, Payments, Customers, Team, Settings) are not stubbed. |
+
+**Demo.** `pnpm e2e restart`, then:
+
+- Backoffice `http://localhost:3001` — `owner@example.com` / `e2e-admin-password-01`. DevTools Network is `127.0.0.1:9099`, not `identitytoolkit.googleapis.com`. After sign-in the sections live in a left rail, not a top bar.
+- Storefront header has Shop by age + All toys, not Wooden toys / Puzzles. `/c/all` shows the filter sidebar.
+- Header search lands on `/search?q=…` rather than a 404.
+
+**Notes.**
+
+- Unit tests could not catch the Auth bug: they inject an env object, or they run in Node where `process.env` is a real map. Playwright now fails if the browser hits `*.googleapis.com`.
+- Safety attribute filters (BIS / BPA-free / no small parts) are still not a `ProductQuery` field, so they are not in the sidebar. The prototype draws them; the query contract does not. Carried forward.
+- `showInNav` still drives the home category rails. The admin "Nav" toggle is therefore not dead.
+
 ## Carried forward
 
 Work discovered mid-build that belongs to a later task. Empty is a good sign; a long list means tasks
@@ -1382,7 +1466,8 @@ are being called done early.
 | ~~Ledger-to-stock reconciliation script; the invariant is asserted in tests but there is no operational tool~~ — `pnpm --filter @romp/data reconcile:variant` built in Task 13                                                                                                                                                                                                                                                                               | Task 6    | ✓ 13             |
 | Point per-page canonical URLs at the deploy origin, plus a sitemap                                                                                                                                                                                                                                                                                                                                                                                           | Task 8    | 22               |
 | Cover `firebase.ts` credential paths against the emulator, so it is not coverage-excluded forever                                                                                                                                                                                                                                                                                                                                                            | Task 8    | 24               |
-| A search box wired to `suggest()` (the read exists; there is no input yet)                                                                                                                                                                                                                                                                                                                                                                                   | Task 8    | 22               |
+| A search box wired to `suggest()` (the `/search` listing now uses prefix `text`; autocomplete is still Task 22)                                                                                                                                                                                                                                                                                                                                              | Task 8    | 22               |
+| Safety attribute filters (BIS / BPA-free / no small parts) on the listing sidebar — they are in the prototype but not on `ProductQuery`                                                                                                                                                                                                                                                                                                                       | Portal    | 22               |
 | Per-variant `Offer` in the PDP JSON-LD (v1.0 emits one product-level offer at the "from" price)                                                                                                                                                                                                                                                                                                                                                              | Task 9    | Roadmap          |
 | Real per-product OG images once the media pipeline produces them (the layout OG fallback applies until then)                                                                                                                                                                                                                                                                                                                                                 | Task 9    | 12, 22           |
 | Wire add-to-cart on the PDP to the cart API (the button and its states ship now; the behaviour is Task 15)                                                                                                                                                                                                                                                                                                                                                   | Task 9    | 15               |
@@ -1508,6 +1593,13 @@ are being called done early.
 | 2026-09-11 | E2E  | A single `pnpm e2e` orchestrator manages the four services, with a `test` command that probes function, not just liveness | Local E2E needs an ordered start (emulators up and seeded before the apps read them), health-gated waits, and a stop/status story — more than a concurrent runner gives. `scripts/dev/e2e.mjs` runs the services detached with pid files and logs, reusing the Java preflight from `run-emulator-tests.mjs`. Its `test` command adds a functional pass (API cart reads Firestore; storefront home contains a seeded product name) so "up but empty" is caught. Pure helpers are unit-tested with `node:test`, no new dependency.                                                                                                                                          |
 | 2026-09-11 | E2E  | The Playwright admin flow authenticates through the Auth emulator, not a UI login                                         | The backoffice ships no browser sign-in surface and no payment-verification control in v1.0 (deferred to Task 20). Rather than build production UI to test it, the admin spec signs in through the Auth emulator to obtain a real `owner`-claimed token and calls the same admin API routes the future UI will call, then asserts the real backoffice read UI reflects paid+packed. When operator sign-in lands, the auth step is swapped for a UI login with no other change. `seed:admins` gained an emulator-only `ADMIN_SEED_PASSWORD` so the login is deterministic — hard-guarded to never set a known password on a real project.                                  |
 | 2026-09-11 | E2E  | `.gitignore` `lib/` was un-ignoring `apps/*/src/lib/` — real source — across the repo                                     | `lib/` (build output) matched `src/lib/` at any depth, so the entire client library directory of both Next apps was untracked and had never been committed. Found when new `src/lib/firebase-emulator.ts` files did not appear in `git status`. Fixed with `!**/src/lib/` negations — the same distinction the ESLint ignore already draws (`lib/**` not `**/lib/**`). This is a repo-wide correction beyond the E2E scope; the previously-untracked `src/lib` source should be reviewed and committed.                                                                                                                                                                   |
+| 2026-09-11 | UI   | The admin login gate was built in the UI overhaul, not Task 20                                                            | Task 20 shipped only the customer auth surface; the backoffice was left ungated with `operatorToken()` always null. The overhaul builds the operator sign-in, auth context and claim-checking gate (`GET /v1/admin/me`) that Task 20's admin notes deferred. It mirrors the storefront's auth surface exactly, reusing the `@romp/core` alias helpers, so client and server agree by construction. |
+| 2026-09-11 | UI   | Light/dark is a dual palette in config, not a second store or a runtime recolour                                          | Adding a light theme could have been a new store or a JS recolour. Instead `theme.modes { light, dark }` lives in one config, the emitter writes `[data-theme]` overrides plus a `prefers-color-scheme` fallback, and a no-flash inline script pins the choice before paint. Both palettes are contrast-gated independently, so a light theme can no more ship an unreadable pair than a dark one. `_template` gained a dark counterpart so the both-store CI matrix exercises light-default and dark-default. |
+| 2026-09-11 | UI   | Placeholder product art is seeded as `media` and served from `/media`, not uploaded to Storage                           | The seed still must not bypass the finalize pipeline, so it writes Storage object *paths* as before; the new part is copying the SVG assets into each app's `public/media` at `store:tokens` time and pointing `NEXT_PUBLIC_MEDIA_BASE_URL` at `/media` locally. `next/image` serves them same-origin with `dangerouslyAllowSVG` locked down by a script-free CSP, since the only SVGs are first-party placeholders — real photography is raster from finalize. |
+| 2026-09-11 | UI   | The E2E admin spec now signs in through the real login form                                                              | The spec previously asserted the backoffice read UI with only an API token, because there was no browser sign-in. With the gate in place the browser must be a signed-in operator, so the spec fills the real `LoginForm` before navigating — exercising the gate end to end rather than bypassing it. The write actions still use the API token, as there is no UI payment-verification control. |
+| 2026-09-12 | E2E  | Client emulator wiring reads each `NEXT_PUBLIC_*` as a static `process.env.*` access                                      | Next only inlines those vars when the member access is static. Passing `process.env` as an object left `enabled` false in the browser, so Auth used the synthetic `emulator-api-key` against Google and login failed. The synthetic key now also forces emulator mode, and Playwright fails if the page talks to `*.googleapis.com`. |
+| 2026-09-12 | UI   | Categories left the header; they are listing filters                                                                      | The written spec put `showInNav` categories in the top bar. The prototype (`ROMP Toy Store.html`) and manual E2E both want the header as chrome (shop-by-age, all toys, search) and categories as sidebar checkboxes. `showInNav` still drives the home rails. Safety chips stay out until `ProductQuery` grows boolean equality fields. |
+| 2026-09-12 | UI   | The backoffice chrome is a left rail, not a top nav                                                                       | The prototype admin shell is a 212px `surface-deep` sidebar (brand mark, sections, operator). The previous `AdminHeader` was a storefront-like top bar. `AdminShell` matches that layout for a signed-in operator; login stays chrome-light. Only routes that exist are listed — Discounts / Payments / Customers / Team / Settings are not stubbed. |
 
 ## Decision log
 

@@ -5,7 +5,7 @@ import { useState } from 'react';
 
 import type { CategoryDoc } from '@romp/contracts';
 import type { WithId } from '@romp/data';
-import { Badge, Button, Field } from '@romp/ui';
+import { Badge, Button, Card, Field, IconButton, PageHeader } from '@romp/ui';
 
 import { ApiError, adminApi } from '@/lib/api';
 import {
@@ -111,9 +111,10 @@ export function CategoryManager({
 
   return (
     <section aria-labelledby="categories-heading" className="flex flex-col gap-6">
-      <h1 id="categories-heading" className="font-display text-2xl text-text-primary">
-        Categories
-      </h1>
+      <PageHeader
+        title={<span id="categories-heading">Categories</span>}
+        description="The storefront navigation and filter tree."
+      />
 
       {categories.length === 0 ? (
         <p className="font-body text-sm text-text-muted">
@@ -154,8 +155,8 @@ export function CategoryManager({
         </ul>
       )}
 
-      <div className="flex flex-col gap-3 rounded-md border border-border p-4">
-        <h2 className="font-body text-sm font-semibold text-text-primary">Add a category</h2>
+      <Card className="flex flex-col gap-3 p-5">
+        <h2 className="font-display text-lg text-text-primary">Add a category</h2>
 
         <Field
           label="Name"
@@ -233,7 +234,7 @@ export function CategoryManager({
             Add category
           </Button>
         </div>
-      </div>
+      </Card>
     </section>
   );
 }
@@ -260,42 +261,43 @@ function CategoryRow({
   ) => void;
 }) {
   return (
-    <div className="flex items-center justify-between rounded-md border border-border bg-surface px-4 py-2">
-      <span className="flex flex-col">
-        <span className="font-body font-semibold text-text-primary">{category.name}</span>
+    <Card className="flex flex-wrap items-center justify-between gap-3 px-4 py-3">
+      <span className="flex min-w-0 flex-col">
+        <span className="truncate font-body font-semibold text-text-primary">{category.name}</span>
         <span className="font-body text-sm text-text-muted">
           {category.slug} · {category.productCount} product{category.productCount === 1 ? '' : 's'}
         </span>
       </span>
-      <span className="flex items-center gap-2">
+      <span className="flex items-center gap-1.5">
         <Badge tone={category.active ? 'success' : 'neutral'}>
           {category.active ? 'Active' : 'Inactive'}
         </Badge>
-        <Button
-          type="button"
-          variant="outline"
+        <IconButton
+          label={`Move ${category.name} up`}
           disabled={saving || index === 0}
           onClick={() => {
             onMove(siblings, index, -1);
           }}
-          aria-label={`Move ${category.name} up`}
         >
-          ↑
-        </Button>
-        <Button
-          type="button"
-          variant="outline"
+          <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true" fill="none">
+            <path d="M10 15V5M5 10l5-5 5 5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </IconButton>
+        <IconButton
+          label={`Move ${category.name} down`}
           disabled={saving || index === siblings.length - 1}
           onClick={() => {
             onMove(siblings, index, 1);
           }}
-          aria-label={`Move ${category.name} down`}
         >
-          ↓
-        </Button>
+          <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true" fill="none">
+            <path d="M10 5v10M5 10l5 5 5-5" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </IconButton>
         <Button
           type="button"
           variant="outline"
+          size="sm"
           disabled={saving}
           onClick={() => {
             onToggleActive(category);
@@ -306,6 +308,7 @@ function CategoryRow({
         <Button
           type="button"
           variant="outline"
+          size="sm"
           disabled={saving}
           onClick={() => {
             onDelete(category);
@@ -314,7 +317,7 @@ function CategoryRow({
           Delete
         </Button>
       </span>
-    </div>
+    </Card>
   );
 }
 

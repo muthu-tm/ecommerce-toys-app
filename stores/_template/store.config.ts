@@ -37,12 +37,15 @@ export default defineStoreConfig({
   },
 
   theme: {
-    // A light theme, where ROMP is dark. Every value clears the same contrast gate.
+    // A light theme by default, where ROMP is dark — and a dark counterpart in `modes`,
+    // so the both-store CI matrix exercises light-default AND dark-default, and both of a
+    // dual-palette store's themes. Every value in every palette clears the same contrast gate.
     colors: {
       page: '#ffffff',
       surface: '#f7f8fa',
       surfaceAlt: '#eef0f4',
       surfaceDeep: '#e8eaef',
+      surfaceElevated: '#ffffff',
 
       primary: '#5b3df5',
       primaryOn: '#ffffff',
@@ -61,6 +64,51 @@ export default defineStoreConfig({
       success: '#0f766e',
       warning: '#7f5307',
       danger: '#b3261e',
+    },
+
+    // Light is this store's default; dark is the counterpart the toggle switches to.
+    defaultMode: 'light',
+    modes: {
+      light: {
+        page: '#ffffff',
+        surface: '#f7f8fa',
+        surfaceAlt: '#eef0f4',
+        surfaceDeep: '#e8eaef',
+        surfaceElevated: '#ffffff',
+        primary: '#5b3df5',
+        primaryOn: '#ffffff',
+        accent: '#b91c1c',
+        accentOn: '#ffffff',
+        textPrimary: '#101114',
+        textSecondary: '#3f434c',
+        textMuted: '#5a6070',
+        border: '#dfe3ea',
+        borderStrong: '#7c8290',
+        focusRing: '#5b3df5',
+        success: '#0f766e',
+        warning: '#7f5307',
+        danger: '#b3261e',
+      },
+      dark: {
+        surfaceDeep: '#0b0d12',
+        page: '#111319',
+        surface: '#161922',
+        surfaceAlt: '#1b1f29',
+        surfaceElevated: '#20242f',
+        primary: '#a99bff',
+        primaryOn: '#12101f',
+        accent: '#ff8a8a',
+        accentOn: '#3a0d0d',
+        textPrimary: '#f4f5f8',
+        textSecondary: '#c3c8d4',
+        textMuted: '#8990a0',
+        border: '#2a2f3b',
+        borderStrong: '#727a8b',
+        focusRing: '#a99bff',
+        success: '#4fd6a3',
+        warning: '#ffc857',
+        danger: '#ff8a8a',
+      },
     },
     radii: {
       sm: '6px',

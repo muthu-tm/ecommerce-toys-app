@@ -22,6 +22,12 @@ const nextConfig = {
 
   output: 'standalone',
 
+  // Dev only: allow the client bundle + HMR websocket to load whether the backoffice is
+  // reached at `localhost` or `127.0.0.1`. Without this, Next 16 blocks its dev resources
+  // cross-origin and no client component hydrates — the access gate is stuck on "Loading…".
+  // No effect on a production build. (See the storefront config for the full rationale.)
+  allowedDevOrigins: ['localhost', '127.0.0.1'],
+
   typescript: { ignoreBuildErrors: false },
 
   images: {
@@ -30,6 +36,11 @@ const nextConfig = {
       { protocol: 'https', hostname: 'firebasestorage.googleapis.com' },
     ],
     formats: ['image/avif', 'image/webp'],
+    // Same posture as the storefront: allow the same-origin SVG placeholders through
+    // next/image, sandboxed and script-free. Real media is raster from the finalize pipeline.
+    dangerouslyAllowSVG: true,
+    contentDispositionType: 'attachment',
+    contentSecurityPolicy: "default-src 'self'; script-src 'none'; sandbox;",
   },
 
   async headers() {

@@ -36,3 +36,24 @@ export type { DialogProps } from './Dialog';
 
 export { Badge, Card, Skeleton, SkipLink } from './Surface';
 export type { BadgeProps, BadgeTone, CardProps, SkeletonProps, SkipLinkProps } from './Surface';
+
+export { PageHeader, Section, Stack } from './Layout';
+export type { PageHeaderProps, SectionProps, StackGap, StackProps } from './Layout';
+
+export { Stat } from './Stat';
+export type { StatProps, StatTone } from './Stat';
+
+export { InitialTile } from './InitialTile';
+export type { InitialTileProps, InitialTileSize } from './InitialTile';
+
+export { EmptyState } from './EmptyState';
+export type { EmptyStateProps } from './EmptyState';
+
+export {
+  THEME_STORAGE_KEY,
+  ThemeProvider,
+  ThemeToggle,
+  themeInitScript,
+  useThemeMode,
+} from './theme-mode';
+export type { ThemeMode, ThemeProviderProps, ThemeToggleProps } from './theme-mode';

@@ -1,5 +1,7 @@
 import Link from 'next/link';
 
+import { ThemeToggle } from '@romp/ui';
+
 import { content, features } from '@/lib/store';
 
 import { CartBadge } from './CartBadge';
@@ -10,14 +12,13 @@ import { Wordmark } from './Wordmark';
 /**
  * The storefront header.
  *
- * A server component, so the nav, the store's copy and the wordmark are in the initial
- * HTML. Only the mobile menu is a client island.
+ * A server component, so the store's copy and the wordmark are in the initial HTML.
+ * Only the mobile menu is a client island.
  *
- * The nav is built from configured categories filtered by `showInNav`, and the age links
- * from configured bands — so a second store's navigation is its own without a code change.
- *
- * Cart and notification counts are placeholders here. They need a session and a live
- * subscription, which arrive in Tasks 11 and 15; the header is where they will mount.
+ * The header is chrome, not taxonomy: logo, a Shop-by-age link, search, account, bell,
+ * bag. Categories live in the listing sidebar (`showInFilters`), matching the prototype
+ * — they are filters, not top-nav destinations. Age bands still have a home grid and
+ * `/age/[band]` routes; the header points at that grid.
  */
 
 interface SearchLabels {
@@ -26,18 +27,16 @@ interface SearchLabels {
 }
 
 const SEARCH: SearchLabels = {
-  // Not store config: these are UI affordance strings, not brand voice. If a store needs
-  // to translate them, they move into `content` — see WHITE_LABEL.md on adding a value.
   label: 'Search toys',
   placeholder: 'Search toys…',
 };
 
-export function SiteHeader() {
-  const navItems = content.categories
-    .filter((category) => category.showInNav)
-    .sort((left, right) => left.sortOrder - right.sortOrder)
-    .map((category) => ({ label: category.name, href: `/c/${category.slug}` }));
+const SHOP_ITEMS = [
+  { label: 'Shop by age', href: '/#shop-by-age' },
+  { label: 'All toys', href: '/c/all' },
+] as const;
 
+export function SiteHeader() {
   const ageItems = content.ageBands.map((band) => ({
     label: band.label,
     href: `/age/${band.value}`,
@@ -47,18 +46,17 @@ export function SiteHeader() {
     <header className="sticky top-0 z-40 border-b border-border bg-page/95 backdrop-blur">
       <div className="mx-auto flex min-h-16 max-w-7xl items-center gap-2 px-3 sm:gap-3 sm:px-4 lg:px-6">
         <MobileNav
-          items={navItems}
+          items={[...SHOP_ITEMS]}
           ageItems={ageItems}
           ageSectionTitle={content.home.ageSectionTitle}
         />
 
-        {/* The mark on narrow viewports, the full wordmark from `sm` up. */}
         <Wordmark compact className="shrink-0 sm:hidden" />
         <Wordmark className="hidden shrink-0 sm:block" />
 
-        <nav aria-label="Categories" className="ml-2 hidden md:block">
+        <nav aria-label="Shop" className="ml-2 hidden md:block">
           <ul className="flex items-center gap-1">
-            {navItems.map((item) => (
+            {SHOP_ITEMS.map((item) => (
               <li key={item.href}>
                 <Link
                   href={item.href}
@@ -71,14 +69,9 @@ export function SiteHeader() {
           </ul>
         </nav>
 
-        {/* Pushes the actions right without a fragile margin. */}
         <div className="flex-1" />
 
-        <form action="/search" role="search" className="hidden lg:block">
-          {/*
-            A real label rather than a placeholder. A placeholder is not an accessible
-            name, and it disappears as soon as the user types.
-          */}
+        <form action="/search" method="get" role="search" className="hidden lg:block">
           <label htmlFor="site-search" className="sr-only">
             {SEARCH.label}
           </label>
@@ -91,6 +84,8 @@ export function SiteHeader() {
           />
         </form>
 
+        <ThemeToggle />
+
         <Link
           href="/account"
           aria-label="Your account"
@@ -102,11 +97,6 @@ export function SiteHeader() {
           </svg>
         </Link>
 
-        {/*
-          The live notification bell, wired to the auth context via `HeaderBell`. For a signed-in
-          customer it subscribes and shows the unread badge and day-grouped feed; signed out it is a
-          plain link to the account area.
-        */}
         <HeaderBell />
 
         <Link

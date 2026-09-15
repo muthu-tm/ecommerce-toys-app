@@ -1,6 +1,6 @@
 import type { Metadata, Viewport } from 'next';
 
-import { SkipLink } from '@romp/ui';
+import { SkipLink, ThemeProvider, themeInitScript } from '@romp/ui';
 
 import './globals.css';
 import { SiteFooter } from '@/components/SiteFooter';
@@ -65,15 +65,27 @@ export default function RootLayout({ children }: { readonly children: React.Reac
   return (
     // lang from config, so a store serving another locale announces itself correctly to
     // screen readers and translation tools.
-    <html lang={locale.locale} className={fontClassName}>
+    <html lang={locale.locale} className={fontClassName} suppressHydrationWarning>
+      <head>
+        {/*
+          The no-flash theme script. It runs before first paint and sets `data-theme` from
+          the visitor's stored choice, so the correct palette is applied before any pixels
+          are drawn. With no stored choice it does nothing, leaving the store's default
+          palette and the `prefers-color-scheme` fallback to decide. `suppressHydrationWarning`
+          because this script legitimately mutates `<html>` before React hydrates.
+        */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-dvh antialiased">
         {/* First tabbable element, so a keyboard user is not marched through the header. */}
         <SkipLink />
         {/*
           One auth subscription for the whole tree — the header's bell and the account pages read
-          the same `{ uid, ready }` rather than each wiring their own listener.
+          the same `{ uid, ready }` rather than each wiring their own listener. ThemeProvider
+          wraps everything so the header toggle and every surface share one live mode.
         */}
-        <AuthProvider>
+        <ThemeProvider>
+          <AuthProvider>
           <SiteHeader />
           {/*
             `main` with an id is the skip-link target and the page's primary landmark.
@@ -84,7 +96,8 @@ export default function RootLayout({ children }: { readonly children: React.Reac
             {children}
           </main>
           <SiteFooter />
-        </AuthProvider>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

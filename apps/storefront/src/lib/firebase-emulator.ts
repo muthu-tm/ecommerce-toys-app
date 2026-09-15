@@ -62,15 +62,38 @@ export function parseHostPort(value: string | undefined, fallback: string): Host
 }
 
 /**
+ * Next.js only inlines `NEXT_PUBLIC_*` values that appear as a **static** member access
+ * (`process.env.NEXT_PUBLIC_FOO`). Passing `process.env` as an object and reading
+ * `env.FOO` is `undefined` in the browser, which left the client SDK talking to real
+ * Google endpoints with the synthetic emulator API key.
+ *
+ * Tests inject `env` explicitly. The default path must spell each key so the bundler
+ * can replace them.
+ */
+function processPublicEnv(): Readonly<Record<string, string | undefined>> {
+  return {
+    NEXT_PUBLIC_USE_FIREBASE_EMULATOR: process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR,
+    NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST: process.env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST,
+    NEXT_PUBLIC_FIREBASE_FIRESTORE_HOST: process.env.NEXT_PUBLIC_FIREBASE_FIRESTORE_HOST,
+    NEXT_PUBLIC_FIREBASE_API_KEY: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
+  };
+}
+
+/** The synthetic API key the orchestrator injects. Never a real Google key. */
+export const EMULATOR_API_KEY = 'emulator-api-key';
+
+/**
  * Reads the emulator wiring decision from the environment.
  *
  * Pure and side-effect-free, so it is the unit-tested seam. `enabled` is a strict equality
- * check against `'true'` — any other value (including `'1'` or undefined) leaves it off.
+ * check against `'true'` — any other value (including `'1'` or undefined) leaves it off,
+ * unless the synthetic emulator API key is present: that key must never be sent to Google.
  */
 export function emulatorConfig(
-  env: Readonly<Record<string, string | undefined>> = process.env,
+  env: Readonly<Record<string, string | undefined>> = processPublicEnv(),
 ): EmulatorConfig {
-  const enabled = env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true';
+  const enabled =
+    env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR === 'true' || env.NEXT_PUBLIC_FIREBASE_API_KEY === EMULATOR_API_KEY;
   const auth = parseHostPort(env.NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST, DEFAULT_AUTH_HOST);
   const firestore = parseHostPort(
     env.NEXT_PUBLIC_FIREBASE_FIRESTORE_HOST,

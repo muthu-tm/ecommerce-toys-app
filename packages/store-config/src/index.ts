@@ -55,6 +55,7 @@ export {
   CommerceConfigSchema,
   ContactConfigSchema,
   ContentSchema,
+  DefaultThemeModeSchema,
   EmptyStatesSchema,
   FEATURE_FLAG_NAMES,
   FeatureFlagsSchema,
@@ -72,6 +73,7 @@ export {
   StoreConfigSchema,
   ThemeColorsSchema,
   ThemeFontsSchema,
+  ThemeModesSchema,
   ThemeMotionSchema,
   ThemeRadiiSchema,
   ThemeSchema,
@@ -98,6 +100,7 @@ export type {
   CommerceConfig,
   ContactConfig,
   Content,
+  DefaultThemeMode,
   FeatureFlags,
   ProductContent,
   ReviewsContent,
@@ -108,6 +111,7 @@ export type {
   StoreConfigInput,
   Theme,
   ThemeColors,
+  ThemeModes,
   ThemeRadii,
   WarehouseConfig,
 } from './schema';
@@ -122,5 +126,6 @@ export {
   renderFontsModule,
   renderTailwindThemeCss,
   renderThemeCss,
+  resolvedColorEntries,
   themeCustomProperties,
 } from './tokens';

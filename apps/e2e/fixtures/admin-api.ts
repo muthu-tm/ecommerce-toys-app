@@ -1,13 +1,9 @@
 /**
  * Admin-side helpers for the E2E flow.
  *
- * The admin app has no browser sign-in surface in v1.0 (operator sign-in is a later feature),
- * so the admin flow authenticates the way the platform's own tooling does against the
- * emulator: it signs in through the **Auth emulator's REST endpoint** to get a real ID token
- * that carries the seeded `owner` role claim, then calls the same admin API routes the future
- * UI will call. That exercises the real money-and-stock writes (verify payment, advance
- * fulfilment) with a real role-gated token — the meaningful end-to-end coverage available
- * today — while the spec still asserts the admin *read* UI reflects the result.
+ * The admin spec signs in through the **Auth emulator's REST endpoint** (for the
+ * role-claimed token used on write routes that have no UI control yet) and the browser
+ * signs in through the real backoffice login form.
  */
 
 const AUTH_HOST = process.env.FIREBASE_AUTH_EMULATOR_HOST ?? '127.0.0.1:9099';

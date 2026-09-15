@@ -24,6 +24,13 @@ export const ThemeColorsSchema = z.object({
   surface: HexColorSchema,
   surfaceAlt: HexColorSchema,
   surfaceDeep: HexColorSchema,
+  /**
+   * A raised surface, one step brighter (dark theme) or one step whiter (light theme)
+   * than `surface`. For hero panels, promoted cards and dashboard stat tiles that want
+   * more presence than the flat `surface`. Optional: when a config omits it, the emitter
+   * falls back to `surface`, so every existing store keeps working unchanged.
+   */
+  surfaceElevated: HexColorSchema.optional(),
 
   primary: HexColorSchema,
   /** Text and icons drawn on top of `primary`. */
@@ -116,11 +123,47 @@ export const ThemeMotionSchema = z.object({
   easing: z.string().min(1),
 });
 
+/**
+ * Light and dark palettes for a store.
+ *
+ * A store may ship one palette or two. `theme.colors` is the **default** palette — the
+ * one emitted into `:root` and used when JavaScript is off or a visitor has expressed no
+ * preference. When `theme.modes` is present it names the same two palettes explicitly, so
+ * the emitter can produce `[data-theme="light"]` and `[data-theme="dark"]` overrides and a
+ * `prefers-color-scheme` fallback.
+ *
+ * Both palettes are contrast-gated independently: a store cannot ship a light theme that
+ * fails WCAG AA any more than it can a dark one. Brand accents (the lime, the coral, the
+ * display font) are shared across modes by convention, not by constraint — only the
+ * surfaces and the text ramp typically differ.
+ */
+export const ThemeModesSchema = z.object({
+  light: ThemeColorsSchema,
+  dark: ThemeColorsSchema,
+});
+export type ThemeModes = z.infer<typeof ThemeModesSchema>;
+
+/** Which palette a store treats as its baseline `:root`. */
+export const DefaultThemeModeSchema = z.enum(['light', 'dark']);
+export type DefaultThemeMode = z.infer<typeof DefaultThemeModeSchema>;
+
 export const ThemeSchema = z.object({
   colors: ThemeColorsSchema,
   radii: ThemeRadiiSchema,
   shadows: ThemeShadowsSchema,
   fonts: ThemeFontsSchema,
   motion: ThemeMotionSchema,
+  /**
+   * Optional dual palette. When present, both `light` and `dark` are emitted as
+   * `[data-theme]` overrides and the toggle can flip between them. When absent, the store
+   * is single-theme and only `theme.colors` is emitted — every pre-existing config.
+   */
+  modes: ThemeModesSchema.optional(),
+  /**
+   * Which of the two modes `theme.colors` corresponds to, so the emitter knows which
+   * palette a no-preference visitor sees by default. Defaults to `dark` (ROMP's original
+   * baseline). Ignored when `modes` is absent.
+   */
+  defaultMode: DefaultThemeModeSchema.default('dark'),
 });
 export type Theme = z.infer<typeof ThemeSchema>;

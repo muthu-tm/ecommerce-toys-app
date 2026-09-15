@@ -143,7 +143,7 @@ Every feature the platform has, is deliberately without, or plans. Derived from 
 | Publish gating (needs a variant)   | ✅ v1.0   | Typed rejection, not a silent failure                       |
 | Safety / compliance fields         | ✅ v1.0   | BIS cert, expiry, BPA-free, small-parts warning             |
 | Category CRUD                      | ✅ v1.0   | Slug collisions, parent categories                          |
-| Category filter / nav toggles      | ✅ v1.0   | Drives storefront sidebar and header                        |
+| Category filter / nav toggles      | ✅ v1.0   | Filter → listing sidebar; Nav → home category rails         |
 | Category reorder                   | ✅ v1.0   | Drag to set nav order                                       |
 | Product-count maintenance          | ✅ v1.0   | Function-maintained; these are the facet counts             |
 | Warehouse management UI            | 🗓 Roadmap | v1.0 seeds warehouses from config                           |

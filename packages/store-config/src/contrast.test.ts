@@ -34,7 +34,7 @@ describe('contrastPairs', () => {
   it('covers every text colour against every surface', () => {
     const pairs = contrastPairs();
 
-    for (const surface of ['page', 'surface', 'surfaceAlt', 'surfaceDeep']) {
+    for (const surface of ['page', 'surface', 'surfaceAlt', 'surfaceDeep', 'surfaceElevated']) {
       for (const text of ['textPrimary', 'textSecondary', 'textMuted']) {
         expect(
           pairs.some((pair) => pair.foreground === text && pair.background === surface),
@@ -59,7 +59,8 @@ describe('contrastPairs', () => {
     // A focus ring nobody can see makes the keyboard purchase path unusable.
     const focus = contrastPairs().filter((pair) => pair.foreground === 'focusRing');
 
-    expect(focus.length).toBe(4);
+    // One pair per surface (page, surface, surfaceAlt, surfaceDeep, surfaceElevated).
+    expect(focus.length).toBe(5);
     for (const pair of focus) expect(pair.requirement).toBe('aaNonText');
   });
 
@@ -119,6 +120,17 @@ describe('findContrastFailures', () => {
     expect(failures.length).toBeGreaterThan(2);
     expect(failures.some((failure) => failure.label.includes('textPrimary'))).toBe(true);
     expect(failures.some((failure) => failure.label.includes('textSecondary'))).toBe(true);
+  });
+
+  it('resolves an omitted surfaceElevated to surface and passes', () => {
+    // A config that never sets surfaceElevated is valid — the gate resolves it to surface.
+    expect(findContrastFailures(PASSING)).toEqual([]);
+  });
+
+  it('gates text against an explicit surfaceElevated', () => {
+    // An elevated panel too close to the text drawn on it must fail like any other surface.
+    const failures = findContrastFailures({ ...PASSING, surfaceElevated: '#f2f3f4' });
+    expect(failures.some((failure) => failure.background === '#f2f3f4')).toBe(true);
   });
 
   it('accepts a light palette as readily as a dark one', () => {

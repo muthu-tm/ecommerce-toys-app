@@ -6,8 +6,14 @@ import {
   googleFontExportName,
   renderFontsModule,
   renderTailwindThemeCss,
+  renderThemeCss,
   themeCustomProperties,
 } from './tokens';
+
+/** Renders the stylesheet for a bare theme, wrapping it in the minimal config shape. */
+function renderThemeCssFor(t: Theme): string {
+  return renderThemeCss({ brand: { id: 'romp' }, theme: t } as never);
+}
 
 const theme: Theme = {
   colors: {
@@ -46,6 +52,7 @@ const theme: Theme = {
     },
   },
   motion: { intensity: 'full', durationMs: 220, easing: 'ease-out' },
+  defaultMode: 'dark',
 };
 
 describe('fontStack', () => {
@@ -169,6 +176,82 @@ describe('renderTailwindThemeCss', () => {
     expect(
       renderTailwindThemeCss({ ...theme, colors: { ...theme.colors, primary: '#5b3df5' } }),
     ).toBe(css);
+  });
+});
+
+describe('surfaceElevated fallback', () => {
+  it('falls back to surface when a config omits surfaceElevated', () => {
+    const props = themeCustomProperties(theme);
+    expect(props['--store-color-surface-elevated']).toBe(theme.colors.surface);
+  });
+
+  it('uses the configured value when present', () => {
+    const props = themeCustomProperties({
+      ...theme,
+      colors: { ...theme.colors, surfaceElevated: '#202226' },
+    });
+    expect(props['--store-color-surface-elevated']).toBe('#202226');
+  });
+
+  it('always emits the surface-elevated Tailwind utility', () => {
+    // The utility must exist for every store, whether or not it defines the token.
+    expect(renderTailwindThemeCss(theme)).toContain(
+      '--color-surface-elevated: var(--store-color-surface-elevated);',
+    );
+  });
+});
+
+describe('renderThemeCss light/dark modes', () => {
+  const light = {
+    ...theme.colors,
+    page: '#ffffff',
+    surface: '#f7f8fa',
+    surfaceAlt: '#eef0f4',
+    surfaceDeep: '#e8eaef',
+    primaryOn: '#0e0e10',
+    accent: '#c2410c',
+    accentOn: '#ffffff',
+    textPrimary: '#101114',
+    textSecondary: '#3f434c',
+    textMuted: '#5a6070',
+    border: '#dfe3ea',
+    borderStrong: '#7c8290',
+    success: '#0f766e',
+    warning: '#7f5307',
+    danger: '#b3261e',
+  } as const;
+
+  const dualTheme = { ...theme, modes: { light, dark: theme.colors }, defaultMode: 'dark' as const };
+  const css = renderThemeCssFor(dualTheme);
+
+  it('emits explicit data-theme override blocks for both palettes', () => {
+    expect(css).toContain("[data-theme='light'] {");
+    expect(css).toContain("[data-theme='dark'] {");
+  });
+
+  it('honours prefers-color-scheme for the non-default mode only until a choice is made', () => {
+    // defaultMode is dark, so :root is dark and the media query supplies light.
+    expect(css).toContain('@media (prefers-color-scheme: light)');
+    expect(css).toContain(':root:not([data-theme])');
+  });
+
+  it('emits no data-theme palette blocks for a single-theme store', () => {
+    const single = renderThemeCssFor(theme);
+    expect(single).not.toContain('[data-theme=');
+    expect(single).not.toContain('prefers-color-scheme');
+  });
+
+  it('emits theme-scoped visibility utilities for a dual-theme store', () => {
+    // The wordmark and any themed asset key off these to match the active surface.
+    expect(css).toContain(".theme-dark-only");
+    expect(css).toContain(".theme-light-only");
+    expect(css).toContain("[data-theme='light'] .theme-dark-only { display: none; }");
+  });
+
+  it('emits an unconditional hide for the single-theme store\u2019s other mode', () => {
+    // theme.defaultMode is 'dark' here, so the light-only asset is always hidden.
+    const single = renderThemeCssFor(theme);
+    expect(single).toContain('.theme-light-only { display: none; }');
   });
 });
 

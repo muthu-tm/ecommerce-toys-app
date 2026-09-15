@@ -28,12 +28,17 @@ export default defineStoreConfig({
   },
 
   theme: {
+    // `colors` is the default (dark) palette — what :root holds and what a JS-disabled
+    // visitor sees. `modes` below names the light and dark palettes explicitly so the
+    // toggle can flip between them; both are contrast-gated independently.
     colors: {
       // Surfaces, deepest to lightest.
       surfaceDeep: '#0e0e10',
       page: '#131417',
       surface: '#161719',
       surfaceAlt: '#191a1d',
+      // A raised panel, one step brighter than surface — hero blocks, stat tiles.
+      surfaceElevated: '#1c1e22',
 
       // Acid lime on near-black: 16.61:1 for the button label.
       primary: '#d8fd4f',
@@ -58,6 +63,67 @@ export default defineStoreConfig({
       success: '#5ee9a0',
       warning: '#ffc857',
       danger: '#ff6b6b',
+    },
+
+    // The default palette is dark; a no-preference visitor sees it, and the OS
+    // `prefers-color-scheme: light` fallback applies the light palette until the toggle runs.
+    defaultMode: 'dark',
+    modes: {
+      // Light theme: white/ivory/light-grey surfaces, the same brand identity. Every pair
+      // was measured against the contrast gate, not chosen by eye — the lime becomes a deep
+      // olive-chartreuse so it reads as text on white (prices, links) as well as filling a
+      // button, and the coral is darkened to clear AA as text on the light-grey surfaces.
+      light: {
+        surfaceDeep: '#e4e6ec',
+        page: '#f6f5f1',
+        surface: '#ffffff',
+        surfaceAlt: '#eceef2',
+        surfaceElevated: '#ffffff',
+
+        primary: '#4c5a12',
+        primaryOn: '#ffffff',
+        accent: '#b83224',
+        accentOn: '#ffffff',
+
+        textPrimary: '#16171a',
+        textSecondary: '#3d424b',
+        textMuted: '#585f6b',
+
+        border: '#e2e4ea',
+        borderStrong: '#767d8a',
+        // Lime is invisible on white, so the light ring is a vivid indigo instead — 3:1+
+        // on every light surface.
+        focusRing: '#5533ee',
+
+        success: '#0c6b49',
+        warning: '#7a5000',
+        danger: '#bb2222',
+      },
+      // Dark theme: identical to `colors` above, named explicitly so the toggle is symmetric.
+      dark: {
+        surfaceDeep: '#0e0e10',
+        page: '#131417',
+        surface: '#161719',
+        surfaceAlt: '#191a1d',
+        surfaceElevated: '#1c1e22',
+
+        primary: '#d8fd4f',
+        primaryOn: '#0e0e10',
+        accent: '#ff6f5e',
+        accentOn: '#3d0f08',
+
+        textPrimary: '#f5f6f7',
+        textSecondary: '#c2c6cf',
+        textMuted: '#8b919d',
+
+        border: '#2a2c31',
+        borderStrong: '#6b727c',
+        focusRing: '#d8fd4f',
+
+        success: '#5ee9a0',
+        warning: '#ffc857',
+        danger: '#ff6b6b',
+      },
     },
     radii: {
       sm: '8px',

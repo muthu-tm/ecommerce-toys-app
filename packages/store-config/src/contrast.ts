@@ -40,6 +40,9 @@ const SURFACES: readonly (keyof ThemeColors)[] = Object.freeze([
   'surface',
   'surfaceAlt',
   'surfaceDeep',
+  // Optional in a config, but resolved to `surface` before gating (see
+  // `findContrastFailures`), so text drawn on an elevated panel is held to the same bar.
+  'surfaceElevated',
 ]);
 
 const TEXT_ON_SURFACE: readonly (keyof ThemeColors)[] = Object.freeze([
@@ -110,9 +113,16 @@ export interface ContrastFailure {
 export function findContrastFailures(colors: ThemeColors): readonly ContrastFailure[] {
   const failures: ContrastFailure[] = [];
 
+  // `surfaceElevated` is optional; resolve it to `surface` so the gate never reads an
+  // undefined colour and an elevated panel is held to the same contrast bar as `surface`.
+  const resolved: ThemeColors = { ...colors, surfaceElevated: colors.surfaceElevated ?? colors.surface };
+
   for (const pair of contrastPairs()) {
-    const foreground = colors[pair.foreground];
-    const background = colors[pair.background];
+    const foreground = resolved[pair.foreground];
+    const background = resolved[pair.background];
+    // Both are present after resolution — every gated token is required except
+    // `surfaceElevated`, which is filled above. The guard keeps the types honest.
+    if (foreground === undefined || background === undefined) continue;
     const ratio = contrastRatio(foreground, background);
     const required = CONTRAST_THRESHOLDS[pair.requirement];
 

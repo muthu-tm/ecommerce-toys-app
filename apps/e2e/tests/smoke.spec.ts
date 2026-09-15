@@ -11,12 +11,15 @@ import { expect, test } from '@playwright/test';
 test('storefront home renders the seeded catalogue', async ({ page }) => {
   await page.goto('/');
 
-  // The page has a title and a main landmark — it is a real render, not an error page.
   await expect(page).toHaveTitle(/.+/u);
   await expect(page.locator('main')).toBeVisible();
 
-  // At least one product card links into the catalogue, which only appears when SSR read the
-  // seeded data. A bare shell with no products would fail here — the "up but empty" case.
+  const shopNav = page.getByRole('navigation', { name: 'Shop' });
+  await expect(shopNav).toBeVisible();
+  await expect(shopNav.getByRole('link', { name: 'Shop by age' })).toBeVisible();
+  await expect(shopNav.getByRole('link', { name: 'All toys' })).toBeVisible();
+  await expect(shopNav.getByRole('link', { name: 'Wooden toys' })).toHaveCount(0);
+
   const productLinks = page.locator('a[href*="/p/"]');
   await expect(productLinks.first()).toBeVisible();
 });

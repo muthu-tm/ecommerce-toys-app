@@ -12,6 +12,7 @@ import { type Firestore, connectFirestoreEmulator, getFirestore } from 'firebase
 import { classifyIdentifier, normalizeEmail, normalizePhone, toAuthEmail } from '@romp/core';
 
 import {
+  EMULATOR_API_KEY,
   connectAuthToEmulator,
   connectFirestoreToEmulator,
   emulatorConfig,
@@ -53,7 +54,7 @@ function emulatorWebConfig(): WebConfig {
   const storeId = process.env.NEXT_PUBLIC_STORE_ID ?? 'store';
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? `demo-${storeId}`;
   return {
-    apiKey: 'emulator-api-key',
+    apiKey: EMULATOR_API_KEY,
     authDomain: `${projectId}.firebaseapp.com`,
     projectId,
     appId: 'emulator-app-id',

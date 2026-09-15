@@ -20,8 +20,8 @@ import { existsSync, mkdirSync, readFileSync, readdirSync, rmSync, writeFileSync
 import { dirname, join, relative, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
-import { loadStoreConfig, resolveStoreId, storeDirectory } from '../src/loader';
-import type { StoreConfig } from '../src/schema';
+import { loadCatalogueSeed, loadStoreConfig, resolveStoreId, storeDirectory } from '../src/loader';
+import type { CatalogueSeed, StoreConfig } from '../src/schema';
 import { publicRuntimeConfig, renderFontsModule, renderThemeCss } from '../src/tokens';
 
 const packageRoot = resolve(dirname(fileURLToPath(import.meta.url)), '..');
@@ -127,19 +127,68 @@ function copyBrandAssets(storeId: string, appDirectory: string): string[] {
   // concurrent run has the target mid-flight — the exact race two builds hit. `readFileSync`
   // then `writeFileSync` has no such check: two runs write identical bytes to the same path,
   // last write wins. Brand assets are small SVG/PNG, so reading them whole is cheap.
-  const sourceNames = new Set(readdirSync(source));
+  // Only files at the top level of assets/ are brand assets. Subdirectories such as
+  // `catalogue/` (product placeholder artwork) are handled separately by
+  // `copyCatalogueMedia` — reading one as a file throws EISDIR.
+  const sourceNames = new Set(
+    readdirSync(source, { withFileTypes: true })
+      .filter((entry) => entry.isFile())
+      .map((entry) => entry.name),
+  );
   for (const name of sourceNames) {
     writeFileSync(join(target, name), readFileSync(join(source, name)));
   }
 
   // Prune stale files the source no longer carries, so a renamed asset is not served forever.
-  for (const name of readdirSync(target)) {
-    if (!sourceNames.has(name)) {
-      rmSync(join(target, name), { recursive: true, force: true });
+  for (const entry of readdirSync(target, { withFileTypes: true })) {
+    if (entry.isFile() && !sourceNames.has(entry.name)) {
+      rmSync(join(target, entry.name), { force: true });
     }
   }
 
   return [...sourceNames].map((name) => join(relative(repoRoot, target), name));
+}
+
+/**
+ * Copies the store's catalogue placeholder artwork into an app's `public/media/`.
+ *
+ * The seed builds each product's media as the Storage object path `products/<slug>/<file>`
+ * (see `@romp/data`'s `buildMedia`), and `mediaUrl` joins that path onto
+ * `NEXT_PUBLIC_MEDIA_BASE_URL`. For local development the base is `/media`, so an app can
+ * serve the placeholders same-origin from `public/media/products/<slug>/<file>` with no
+ * Storage host, no emulator upload, and the same code path production uses. In production the
+ * base is the Cloudflare-fronted Storage domain and these files are simply unused — real
+ * photography is uploaded through the admin pipeline.
+ *
+ * A store with no catalogue, or products with no media (for example `_template`), copies
+ * nothing and the storefront falls back to the placeholder tile.
+ */
+function copyCatalogueMedia(
+  storeId: string,
+  catalogue: CatalogueSeed | null,
+  appDirectory: string,
+): string[] {
+  const mediaRoot = join(appDirectory, 'public', 'media', 'products');
+  // Rebuild the tree from scratch so a renamed or removed asset never lingers.
+  rmSync(mediaRoot, { recursive: true, force: true });
+  if (catalogue === null) return [];
+
+  const catalogueAssets = join(storeDirectory(storeId), 'assets', 'catalogue');
+  const written: string[] = [];
+
+  for (const product of catalogue.products) {
+    for (const item of product.media) {
+      const source = join(catalogueAssets, item.file);
+      if (!existsSync(source)) continue; // The loader already reports missing files.
+      const targetDir = join(mediaRoot, product.slug);
+      mkdirSync(targetDir, { recursive: true });
+      const target = join(targetDir, item.file);
+      writeFileSync(target, readFileSync(source));
+      written.push(join(relative(repoRoot, target)));
+    }
+  }
+
+  return written;
 }
 
 async function main(): Promise<void> {
@@ -147,12 +196,17 @@ async function main(): Promise<void> {
   // check the template still emits valid artefacts.
   const storeId = resolveStoreId(process.env.STORE_ID, { allowScaffold: true });
   const config = await loadStoreConfig(storeId, { allowScaffold: true });
+  // The catalogue is optional; its placeholder artwork is copied into each app's public dir
+  // so `/media` serves it locally. Asset existence was already checked by the loader, so a
+  // failure here would be a genuine filesystem problem, not a config mistake.
+  const catalogue = await loadCatalogueSeed(storeId, config);
 
   const written = [
     ...write(join(packageRoot, 'generated'), packageArtefacts(storeId, config)),
     ...appDirectories().flatMap((directory) => [
       ...write(join(directory, 'src', 'generated'), appArtefacts(config)),
       ...copyBrandAssets(storeId, directory),
+      ...copyCatalogueMedia(storeId, catalogue, directory),
     ]),
   ];
 

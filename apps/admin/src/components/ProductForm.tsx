@@ -3,7 +3,7 @@
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 
-import { Button, Field } from '@romp/ui';
+import { Button, Card, Field } from '@romp/ui';
 
 import { ApiError, adminApi } from '@/lib/api';
 import type { ProductFormState } from '@/lib/product-form';
@@ -112,99 +112,104 @@ export function ProductForm({ productId, initial, categories }: ProductFormProps
 
       {tab === 'details' ? (
         <div className="flex flex-col gap-4">
-          <Field
-            label="Name"
-            required
-            value={state.name}
-            onChange={(event) => {
-              set('name', event.target.value);
-            }}
-          />
-          <Field
-            label="Slug"
-            hint="Leave blank to derive it from the name."
-            value={state.slug}
-            disabled={isEdit}
-            onChange={(event) => {
-              set('slug', event.target.value);
-            }}
-          />
-          <Field
-            label="Description"
-            required
-            value={state.description}
-            onChange={(event) => {
-              set('description', event.target.value);
-            }}
-          />
-          <Field
-            label="Brand"
-            required
-            value={state.brand}
-            onChange={(event) => {
-              set('brand', event.target.value);
-            }}
-          />
-          <label className="flex flex-col gap-1.5">
-            <span className="font-body text-sm font-semibold text-text-primary">Category</span>
-            <select
-              className="min-h-11 rounded-md border border-border-strong bg-surface px-3 font-body text-base text-text-primary"
-              value={state.categoryId}
+          <Card className="flex flex-col gap-4 p-5">
+            <h2 className="font-display text-lg text-text-primary">Basics</h2>
+            <Field
+              label="Name"
+              required
+              value={state.name}
               onChange={(event) => {
-                const chosen = categories.find((category) => category.id === event.target.value);
-                setState((current) => ({
-                  ...current,
-                  categoryId: event.target.value,
-                  categorySlug: chosen?.slug ?? '',
-                }));
+                set('name', event.target.value);
               }}
-            >
-              <option value="">Select a category…</option>
-              {categories.map((category) => (
-                <option key={category.id} value={category.id}>
-                  {category.name}
-                </option>
-              ))}
-            </select>
-          </label>
-          <Field
-            label="Age band"
-            required
-            hint="For example, 6-8 or 8+."
-            value={state.ageBand}
-            onChange={(event) => {
-              set('ageBand', event.target.value);
-            }}
-          />
-          <Field
-            label="Badge"
-            hint="An optional ribbon, e.g. Bestseller."
-            value={state.badge}
-            onChange={(event) => {
-              set('badge', event.target.value);
-            }}
-          />
-          <Field
-            label="Skills it builds"
-            hint="Comma-separated."
-            value={state.skills}
-            onChange={(event) => {
-              set('skills', event.target.value);
-            }}
-          />
-          <Field
-            label="In the box"
-            hint="Comma-separated."
-            value={state.boxItems}
-            onChange={(event) => {
-              set('boxItems', event.target.value);
-            }}
-          />
+            />
+            <Field
+              label="Slug"
+              hint="Leave blank to derive it from the name."
+              value={state.slug}
+              disabled={isEdit}
+              onChange={(event) => {
+                set('slug', event.target.value);
+              }}
+            />
+            <Field
+              label="Description"
+              required
+              value={state.description}
+              onChange={(event) => {
+                set('description', event.target.value);
+              }}
+            />
+            <Field
+              label="Brand"
+              required
+              value={state.brand}
+              onChange={(event) => {
+                set('brand', event.target.value);
+              }}
+            />
+          </Card>
 
-          <fieldset className="flex flex-col gap-3 rounded-md border border-border p-4">
-            <legend className="px-1 font-body text-sm font-semibold text-text-primary">
-              Safety
-            </legend>
+          <Card className="flex flex-col gap-4 p-5">
+            <h2 className="font-display text-lg text-text-primary">Classification</h2>
+            <label className="flex flex-col gap-1.5">
+              <span className="font-body text-sm font-semibold text-text-primary">Category</span>
+              <select
+                className="min-h-11 rounded-md border border-border-strong bg-surface px-3 font-body text-base text-text-primary"
+                value={state.categoryId}
+                onChange={(event) => {
+                  const chosen = categories.find((category) => category.id === event.target.value);
+                  setState((current) => ({
+                    ...current,
+                    categoryId: event.target.value,
+                    categorySlug: chosen?.slug ?? '',
+                  }));
+                }}
+              >
+                <option value="">Select a category…</option>
+                {categories.map((category) => (
+                  <option key={category.id} value={category.id}>
+                    {category.name}
+                  </option>
+                ))}
+              </select>
+            </label>
+            <Field
+              label="Age band"
+              required
+              hint="For example, 6-8 or 8+."
+              value={state.ageBand}
+              onChange={(event) => {
+                set('ageBand', event.target.value);
+              }}
+            />
+            <Field
+              label="Badge"
+              hint="An optional ribbon, e.g. Bestseller."
+              value={state.badge}
+              onChange={(event) => {
+                set('badge', event.target.value);
+              }}
+            />
+            <Field
+              label="Skills it builds"
+              hint="Comma-separated."
+              value={state.skills}
+              onChange={(event) => {
+                set('skills', event.target.value);
+              }}
+            />
+            <Field
+              label="In the box"
+              hint="Comma-separated."
+              value={state.boxItems}
+              onChange={(event) => {
+                set('boxItems', event.target.value);
+              }}
+            />
+          </Card>
+
+          <Card as="fieldset" className="flex flex-col gap-3 p-5">
+            <legend className="px-1 font-display text-lg text-text-primary">Safety</legend>
             <Checkbox
               label="BIS certified"
               checked={state.bisCertified}
@@ -245,10 +250,10 @@ export function ProductForm({ productId, initial, categories }: ProductFormProps
                 set('hasSmallParts', checked);
               }}
             />
-          </fieldset>
+          </Card>
         </div>
       ) : (
-        <div className="flex flex-col gap-4">
+        <Card className="flex flex-col gap-4 p-5">
           <Field
             label="SEO title"
             hint="Overrides the page title. Leave blank to use the product name."
@@ -272,7 +277,7 @@ export function ProductForm({ productId, initial, categories }: ProductFormProps
               set('seoIndex', checked);
             }}
           />
-        </div>
+        </Card>
       )}
 
       {error !== null ? (

@@ -34,6 +34,11 @@ vi.mock('next/navigation', () => ({
   },
 }));
 
+vi.mock('@/server/catalogue', async (importOriginal) => ({
+  ...(await importOriginal<typeof CatalogueModule>()),
+  getFilterCategories: () => Promise.resolve([]),
+}));
+
 const withId = (id: string, overrides: Partial<ProductDoc> = {}): WithId<ProductDoc> => ({
   ...aProduct(),
   id,
@@ -108,6 +113,21 @@ describe('ListingView', () => {
     render(element);
 
     expect(screen.getByRole('combobox')).toHaveValue('price_desc');
+  });
+
+  it('renders age filters from configured bands', async () => {
+    const { ListingView } = await import('@/components/ListingView');
+    const element = await ListingView({
+      title: 'Wooden toys',
+      basePath: '/c/wooden',
+      searchParams: {},
+      fixedFilter: { categorySlugs: ['wooden'] },
+    });
+    render(element);
+
+    const band = content.ageBands[0];
+    if (band === undefined) throw new Error('no age bands');
+    expect(screen.getAllByRole('button', { name: band.label }).length).toBeGreaterThan(0);
   });
 });
 
@@ -192,5 +212,25 @@ describe('the category listing page', () => {
     });
 
     expect(metadata.title).toBe(content.home.categorySectionTitle);
+  });
+});
+
+describe('the search page', () => {
+  it('titles an empty search as Search', async () => {
+    const { generateMetadata } = await import('@/app/search/page');
+    const metadata = await generateMetadata({
+      searchParams: Promise.resolve({}),
+    });
+
+    expect(metadata.title).toBe('Search');
+  });
+
+  it('titles a query with the search text', async () => {
+    const { generateMetadata } = await import('@/app/search/page');
+    const metadata = await generateMetadata({
+      searchParams: Promise.resolve({ q: 'stack' }),
+    });
+
+    expect(metadata.title).toBe('stack');
   });
 });

@@ -129,17 +129,18 @@ browser), `report` (open the last HTML report).
 
 ### A note on admin authentication
 
-The backoffice ships no browser sign-in surface in v1.0 (operator sign-in is a later feature),
-and no payment-verification control. So the admin spec authenticates the way the platform's own
-tooling does against the emulator — it signs in through the Auth emulator to get a real ID token
-carrying the seeded `owner` role claim — and calls the same admin API routes the future UI will
-call. The assertions are still against the real backoffice **read** UI, so the end-to-end effect
-is verified where an operator would see it. When the sign-in UI lands, the spec's auth step can
-be replaced with a UI login with no other change.
+The backoffice is login-gated. Against the emulator profile the seeded owner is
+`owner@example.com` with password `ADMIN_SEED_PASSWORD` (default `e2e-admin-password-01`,
+honoured only when the Auth emulator is the target — see `apps/api/scripts/seed-admins.ts`).
 
-The seeded admin for local E2E is `owner@example.com`. Its password is fixed to a known value
-only against the Auth emulator (via `ADMIN_SEED_PASSWORD`), never against a real project — see
-the guard in `apps/api/scripts/seed-admins.ts`.
+Sign-in in the browser uses the client Firebase SDK pointed at the Auth emulator
+(`NEXT_PUBLIC_USE_FIREBASE_EMULATOR=true`). If DevTools shows `identitytoolkit.googleapis.com`
+on a Google host rather than `127.0.0.1:9099`, the client bundle did not inline the emulator
+flag — that is the failure mode `firebase-emulator.ts` exists to prevent.
+
+Writes that have no UI control yet (payment verification, fulfilment) still go through the
+admin API with a role-claimed ID token. The Playwright admin spec signs in through the real
+login form, then asserts the backoffice **read** UI.
 
 ---
 

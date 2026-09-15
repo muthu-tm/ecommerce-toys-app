@@ -20,7 +20,7 @@ the build against.
 ### 1. Home — `/`
 
 Hero with configured headline, sub-copy and two CTAs; shop-by-age grid; featured product rail;
-promotional banner; trust-badge row; header with nav, search, account, notification bell, cart count;
+promotional banner; trust-badge row; header with shop-by-age / all-toys, search, account, notification bell, cart count;
 footer with policy links.
 
 **Acceptance**

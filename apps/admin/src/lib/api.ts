@@ -89,6 +89,43 @@ async function requestNoContent(method: string, path: string, body?: unknown): P
   await request<unknown>(method, path, body);
 }
 
+/** What `GET /v1/admin/me` tells the guard about the signed-in browser session. */
+export type OperatorCheck =
+  | { readonly kind: 'operator'; readonly uid: string; readonly role: 'owner' | 'staff' }
+  /** Signed in, but the account has no operator claim — a customer at the staff door. */
+  | { readonly kind: 'forbidden' }
+  /** No valid session at all. */
+  | { readonly kind: 'anonymous' };
+
+/**
+ * Resolves whether the current browser session is an operator, by asking the API.
+ *
+ * The role lives in the verified token claim, which the client cannot read authoritatively —
+ * so the guard asks the server. `GET /v1/admin/me` returns `{ uid, role }` for an operator,
+ * 403 for a signed-in customer without the claim (the distinction `IDENTITY.md` insists on),
+ * and 401 when there is no token. This maps those three outcomes to a discriminated union the
+ * guard branches on, rather than throwing — a "not permitted" screen is a normal state here,
+ * not an error.
+ */
+export async function fetchOperator(): Promise<OperatorCheck> {
+  const token = await operatorToken();
+  if (token === null) return { kind: 'anonymous' };
+
+  const response = await fetch(`${apiBase()}/v1/admin/me`, {
+    headers: { authorization: `Bearer ${token}` },
+  });
+
+  if (response.status === 403) return { kind: 'forbidden' };
+  if (!response.ok) return { kind: 'anonymous' };
+
+  const body = (await response.json().catch(() => ({}))) as {
+    uid?: string;
+    role?: 'owner' | 'staff';
+  };
+  if (body.uid === undefined || body.role === undefined) return { kind: 'anonymous' };
+  return { kind: 'operator', uid: body.uid, role: body.role };
+}
+
 export const adminApi = {
   createProduct: (body: CreateProductRequest) =>
     request<CreateProductResponse>('POST', '/v1/admin/products', body),

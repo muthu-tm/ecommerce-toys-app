@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
 import {
+  EMULATOR_API_KEY,
   connectAuthToEmulator,
   connectFirestoreToEmulator,
   emulatorConfig,
@@ -27,6 +28,13 @@ describe('emulatorConfig', () => {
     expect(emulatorConfig({ NEXT_PUBLIC_USE_FIREBASE_EMULATOR: '1' }).enabled).toBe(false);
     expect(emulatorConfig({ NEXT_PUBLIC_USE_FIREBASE_EMULATOR: 'TRUE' }).enabled).toBe(false);
     expect(emulatorConfig({ NEXT_PUBLIC_USE_FIREBASE_EMULATOR: 'true' }).enabled).toBe(true);
+  });
+
+  it('enables when the synthetic emulator API key is present, even without the flag', () => {
+    // The orchestrator inlines `emulator-api-key` into the client bundle. That key is
+    // not a real Google credential — talking to identitytoolkit.googleapis.com with it
+    // is the failure mode this exists to prevent.
+    expect(emulatorConfig({ NEXT_PUBLIC_FIREBASE_API_KEY: EMULATOR_API_KEY }).enabled).toBe(true);
   });
 
   it('defaults the hosts when the flag is on and no host vars are set', () => {

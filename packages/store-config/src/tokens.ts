@@ -1,5 +1,5 @@
 import type { StoreConfig } from './schema';
-import type { MotionIntensity, Theme } from './schema/theme';
+import type { MotionIntensity, Theme, ThemeColors } from './schema/theme';
 
 /**
  * Token emission.
@@ -55,11 +55,24 @@ export function fontCssVariable(role: 'display' | 'body'): string {
   return `--font-${TOKEN_PREFIX}-${role}`;
 }
 
-/** Flat map of custom property name to value. */
+/**
+ * The full colour ramp for a palette, with derived fallbacks applied.
+ *
+ * `surfaceElevated` is optional in a store config; when omitted it resolves to `surface`,
+ * so the `bg-surface-elevated` utility always exists and always has a sensible value. This
+ * is the one place that fallback is computed, so both the CSS-property emission and the
+ * mode-override emission agree.
+ */
+export function resolvedColorEntries(colors: ThemeColors): readonly (readonly [string, string])[] {
+  const surfaceElevated = colors.surfaceElevated ?? colors.surface;
+  return Object.entries({ ...colors, surfaceElevated });
+}
+
+/** Flat map of custom property name to value, for the default palette. */
 export function themeCustomProperties(theme: Theme): Readonly<Record<string, string>> {
   const properties: Record<string, string> = {};
 
-  for (const [name, value] of Object.entries(theme.colors)) {
+  for (const [name, value] of resolvedColorEntries(theme.colors)) {
     properties[cssVar('color', name)] = value;
   }
   for (const [name, value] of Object.entries(theme.radii)) {
@@ -128,7 +141,7 @@ export function renderThemeCss(config: StoreConfig): string {
 :root {
 ${declarations}
 }
-
+${renderModeOverrides(config.theme)}${renderThemeModeUtilities(config.theme)}
 /*
  * prefers-reduced-motion wins over theme.motion.intensity, always. Handled here so a
  * component that forgets the media query still animates for zero milliseconds.
@@ -136,6 +149,98 @@ ${declarations}
 @media (prefers-reduced-motion: reduce) {
   :root {
     ${cssVar('motion', 'duration')}: 0ms;
+  }
+}
+`;
+}
+
+/**
+ * Utility classes that show an element only in one theme mode.
+ *
+ * `.theme-dark-only` is visible when the active theme is dark, `.theme-light-only` when it is
+ * light — driven by the *same* `data-theme` / `prefers-color-scheme` logic the palette uses, so
+ * an asset that must match the surface (a wordmark whose ink is light on dark and dark on light)
+ * can never mismatch it. Emitted for every store; a single-theme store simply always resolves to
+ * its one mode. The class only sets `display: none` for the hidden variant, so an element with
+ * neither class is unaffected.
+ */
+function renderThemeModeUtilities(theme: Theme): string {
+  // Single-theme store: the active mode is always `defaultMode`, so the rule is unconditional.
+  if (theme.modes === undefined) {
+    const hideOther = theme.defaultMode === 'dark' ? 'light' : 'dark';
+    return `
+.theme-${hideOther}-only { display: none; }
+`;
+  }
+
+  const nonDefaultMode = theme.defaultMode === 'dark' ? 'light' : 'dark';
+
+  return `
+/*
+ * Theme-scoped visibility, mirroring the palette selectors above so a themed asset (e.g. the
+ * wordmark) always matches its surface.
+ */
+:root .theme-${nonDefaultMode}-only { display: none; }
+[data-theme='light'] .theme-dark-only { display: none; }
+[data-theme='light'] .theme-light-only { display: revert; }
+[data-theme='dark'] .theme-light-only { display: none; }
+[data-theme='dark'] .theme-dark-only { display: revert; }
+@media (prefers-color-scheme: ${nonDefaultMode}) {
+  :root:not([data-theme]) .theme-${theme.defaultMode}-only { display: none; }
+  :root:not([data-theme]) .theme-${nonDefaultMode}-only { display: revert; }
+}
+`;
+}
+
+/** Colour declarations for one palette, indented for a rule body. */
+function paletteColorDeclarations(colors: ThemeColors): string {
+  return resolvedColorEntries(colors)
+    .map(([name, value]) => `  ${cssVar('color', name)}: ${value};`)
+    .join('\n');
+}
+
+/**
+ * Light/dark mode override blocks.
+ *
+ * Emitted only when a store ships `theme.modes`. Three things are produced:
+ *
+ *  - An explicit `[data-theme="light"]` and `[data-theme="dark"]` block, so the toggle can
+ *    force a palette regardless of the OS preference by setting `data-theme` on `<html>`.
+ *  - A `@media (prefers-color-scheme)` block that applies the palette a no-preference
+ *    visitor should see *when the toggle has not run yet* — i.e. only while `<html>` carries
+ *    no explicit `data-theme`. This is what makes the OS preference the initial default
+ *    without a flash, in concert with the no-flash inline script the ThemeProvider injects.
+ *
+ * `:root` already holds `theme.colors` (the `defaultMode` palette), so a single-theme store
+ * and a JS-disabled visitor both get a complete, valid palette with no override at all.
+ */
+function renderModeOverrides(theme: Theme): string {
+  if (theme.modes === undefined) return '';
+
+  const { light, dark } = theme.modes;
+  const nonDefaultMode = theme.defaultMode === 'dark' ? 'light' : 'dark';
+  const nonDefaultColors = theme.defaultMode === 'dark' ? light : dark;
+
+  return `
+/*
+ * Explicit theme selection. The ThemeProvider sets \`data-theme\` on <html>; these win
+ * over the OS preference and over :root.
+ */
+[data-theme='light'] {
+${paletteColorDeclarations(light)}
+}
+
+[data-theme='dark'] {
+${paletteColorDeclarations(dark)}
+}
+
+/*
+ * OS preference, applied only until the visitor makes an explicit choice. Scoped to
+ * :root:not([data-theme]) so a forced theme is never overridden by the media query.
+ */
+@media (prefers-color-scheme: ${nonDefaultMode}) {
+  :root:not([data-theme]) {
+${paletteColorDeclarations(nonDefaultColors)}
   }
 }
 `;
@@ -161,7 +266,12 @@ export function renderTailwindThemeCss(theme: Theme): string {
   const lines: string[] = [];
 
   // Tailwind 4 namespaces: --color-*, --radius-*, --shadow-*, --font-*, --ease-*.
-  for (const name of Object.keys(theme.colors)) {
+  //
+  // The colour surface is derived from `resolvedColorEntries` rather than the raw config,
+  // so `surface-elevated` is always present (falling back to `surface`) and the Tailwind
+  // utility set is identical for every store whether or not it defines that optional token.
+  const colorNames = resolvedColorEntries(theme.colors).map(([name]) => name);
+  for (const name of colorNames) {
     lines.push(`  --color-${kebab(name)}: var(${cssVar('color', name)});`);
   }
   for (const name of Object.keys(theme.radii)) {

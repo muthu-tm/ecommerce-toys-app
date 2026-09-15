@@ -60,17 +60,25 @@ export function VariantSelector({
   }
 
   const hasDiscount = selected.mrpMinor > selected.priceMinor;
+  const savingsPercent = hasDiscount
+    ? Math.round(((selected.mrpMinor - selected.priceMinor) / selected.mrpMinor) * 100)
+    : 0;
 
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-baseline gap-3">
+      <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
         <span className="font-body text-3xl font-bold text-text-primary">
           {formatMoney(selected.priceMinor, moneyFormat)}
         </span>
         {hasDiscount && (
-          <span className="font-body text-lg text-text-muted line-through">
-            {formatMoney(selected.mrpMinor, moneyFormat)}
-          </span>
+          <>
+            <span className="font-body text-lg text-text-muted line-through">
+              {formatMoney(selected.mrpMinor, moneyFormat)}
+            </span>
+            {savingsPercent > 0 && (
+              <Badge tone="accent">{`Save ${String(savingsPercent)}%`}</Badge>
+            )}
+          </>
         )}
       </div>
 

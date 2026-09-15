@@ -104,7 +104,7 @@ product's variant count is unbounded in principle.
 | `slug`                    | string         | Unique; collisions get a `-2` suffix.                                                                                     |
 | `parentId`                | string \| null | One level in practice (e.g. Bath → Sensory).                                                                              |
 | `showInFilters`           | boolean        | Drives the listing sidebar.                                                                                               |
-| `showInNav`               | boolean        | Drives the storefront header.                                                                                             |
+| `showInNav`               | boolean        | Drives the storefront **home category rails**, not the header. The header is chrome (shop-by-age, all toys, search).                                                                                       |
 | `productCount`            | integer        | **Denormalised.** These _are_ the facet counts — Firestore cannot count facets in a query. Owner: product-write Function. |
 | `sortOrder`               | integer        | Nav ordering.                                                                                                             |
 | `createdAt` / `updatedAt` | Timestamp      |                                                                                                                           |
@@ -456,7 +456,7 @@ appear as two rows below.
 | `inventoryLedger` | `variantId`, `at` desc                                        | Ledger view                                       |
 | `inventoryLedger` | `variantId`, `warehouseId`, `at` asc                          | Per-warehouse reconciliation                      |
 | `inventory`       | `onHandTotal`, `updatedAt` desc                               | Low-stock report                                  |
-| `categories`      | `showInNav`, `sortOrder`                                      | Storefront nav                                    |
+| `categories`      | `showInNav`, `sortOrder`                                      | Home category rails                               |
 | `categories`      | `showInFilters`, `sortOrder`                                  | Listing sidebar                                   |
 | `events`          | `type`, `at` desc                                             | Audit search by kind                              |
 | `events`          | `subject.kind`, `subject.id`, `at` asc                        | Everything that happened to one order             |

@@ -121,22 +121,36 @@ export function AccountDashboard() {
         </Button>
       </div>
 
-      <nav aria-label="Account sections" className="flex flex-wrap gap-3">
-        <Link href="/account/orders" className="text-accent underline">
-          Orders
-        </Link>
-        <Link href="/account/addresses" className="text-accent underline">
-          Addresses
-        </Link>
-        <Link href="/account/wishlist" className="text-accent underline">
-          Saved toys
-        </Link>
-        <Link href="/account/reviews" className="text-accent underline">
-          Reviews
-        </Link>
-        <Link href="/account/notifications" className="text-accent underline">
-          Notifications
-        </Link>
+      <nav aria-label="Account sections">
+        <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3">
+          {[
+            { href: '/account/orders', label: 'Orders' },
+            { href: '/account/addresses', label: 'Addresses' },
+            { href: '/account/wishlist', label: 'Saved toys' },
+            { href: '/account/reviews', label: 'Reviews' },
+            { href: '/account/notifications', label: 'Notifications' },
+          ].map((link) => (
+            <li key={link.href}>
+              <Card interactive className="h-full">
+                <Link
+                  href={link.href}
+                  className="flex min-h-16 items-center justify-between gap-2 p-4 font-body font-semibold text-text-primary focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                >
+                  {link.label}
+                  <svg viewBox="0 0 20 20" className="size-4 text-text-muted" aria-hidden="true" fill="none">
+                    <path
+                      d="M7 4l6 6-6 6"
+                      stroke="currentColor"
+                      strokeWidth="2"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                </Link>
+              </Card>
+            </li>
+          ))}
+        </ul>
       </nav>
 
       <Card className="p-6">

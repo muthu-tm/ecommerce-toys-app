@@ -2,10 +2,10 @@ import Link from 'next/link';
 
 import type { ProductDoc } from '@romp/contracts';
 import type { WithId } from '@romp/data';
-import { ButtonLink, Badge, Card } from '@romp/ui';
+import { Badge, ButtonLink, Card, InitialTile, PageHeader } from '@romp/ui';
 
 import { statusLabel, statusTone } from '@/lib/product-view';
-import { formatMoney, moneyFormat } from '@/lib/store';
+import { formatMoney, mediaUrl, moneyFormat } from '@/lib/store';
 
 /**
  * The backoffice product list.
@@ -18,12 +18,11 @@ import { formatMoney, moneyFormat } from '@/lib/store';
 export function ProductList({ products }: { readonly products: readonly WithId<ProductDoc>[] }) {
   return (
     <section aria-labelledby="products-heading" className="flex flex-col gap-6">
-      <div className="flex items-center justify-between">
-        <h1 id="products-heading" className="font-display text-2xl text-text-primary">
-          Products
-        </h1>
-        <ButtonLink href="/products/new">New product</ButtonLink>
-      </div>
+      <PageHeader
+        title={<span id="products-heading">Products</span>}
+        description={`${String(products.length)} in the catalogue`}
+        actions={<ButtonLink href="/products/new">New product</ButtonLink>}
+      />
 
       {products.length === 0 ? (
         <Card className="p-8 text-center">
@@ -33,27 +32,44 @@ export function ProductList({ products }: { readonly products: readonly WithId<P
         </Card>
       ) : (
         <ul className="flex flex-col gap-2">
-          {products.map((product) => (
-            <li key={product.id}>
-              <Link
-                href={`/products/${product.id}`}
-                className="flex items-center justify-between rounded-md border border-border bg-surface px-4 py-3 hover:border-border-strong"
-              >
-                <span className="flex flex-col">
-                  <span className="font-body font-semibold text-text-primary">{product.name}</span>
-                  <span className="font-body text-sm text-text-muted">{product.slug}</span>
-                </span>
-                <span className="flex items-center gap-4">
-                  <span className="font-body text-sm text-text-primary">
-                    {product.variantSummary.length > 0
-                      ? formatMoney(product.priceFromMinor, moneyFormat)
-                      : '—'}
-                  </span>
-                  <Badge tone={statusTone(product.status)}>{statusLabel(product.status)}</Badge>
-                </span>
-              </Link>
-            </li>
-          ))}
+          {products.map((product) => {
+            const cover = product.media.find((item) => item.order === 0) ?? product.media[0] ?? null;
+            const image = mediaUrl(cover?.path ?? null);
+            return (
+              <li key={product.id}>
+                <Card interactive className="overflow-hidden">
+                  <Link
+                    href={`/products/${product.id}`}
+                    className="flex items-center gap-4 p-3 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                  >
+                    <span className="size-14 shrink-0 overflow-hidden rounded-md">
+                      {image !== null ? (
+                        <img src={image} alt="" className="size-14 object-cover" />
+                      ) : (
+                        <InitialTile name={product.name} size="sm" />
+                      )}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col">
+                      <span className="truncate font-body font-semibold text-text-primary">
+                        {product.name}
+                      </span>
+                      <span className="truncate font-body text-sm text-text-muted">
+                        {product.slug}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-4">
+                      <span className="font-body text-sm text-text-primary">
+                        {product.variantSummary.length > 0
+                          ? formatMoney(product.priceFromMinor, moneyFormat)
+                          : '—'}
+                      </span>
+                      <Badge tone={statusTone(product.status)}>{statusLabel(product.status)}</Badge>
+                    </span>
+                  </Link>
+                </Card>
+              </li>
+            );
+          })}
         </ul>
       )}
     </section>

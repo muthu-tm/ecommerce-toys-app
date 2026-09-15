@@ -1,5 +1,4 @@
-import { Card } from '@romp/ui';
-
+import { AuthShell } from '@/components/account/AuthShell';
 import { SignInForm } from '@/components/account/SignInForm';
 
 /**
@@ -19,10 +18,8 @@ export default async function SignInPage({
   const next = typeof params.next === 'string' ? params.next : undefined;
 
   return (
-    <div className="mx-auto max-w-md">
-      <Card className="p-6">
-        <SignInForm {...(next === undefined ? {} : { next })} />
-      </Card>
-    </div>
+    <AuthShell>
+      <SignInForm {...(next === undefined ? {} : { next })} />
+    </AuthShell>
   );
 }

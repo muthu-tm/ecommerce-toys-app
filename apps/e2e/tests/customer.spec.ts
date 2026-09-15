@@ -1,6 +1,7 @@
 import { expect, test } from '@playwright/test';
 
 import { TEST_ADDRESS, TEST_UTR, makeCustomer, writeOrderHandoff } from '../fixtures/data';
+import { watchProductionFirebase } from '../fixtures/network';
 
 /**
  * The customer happy path, end to end against the live emulator stack.
@@ -20,6 +21,8 @@ const customer = makeCustomer();
 test.describe.configure({ mode: 'serial' });
 
 test('customer registers, orders, and submits payment', async ({ page }) => {
+  const productionFirebase = watchProductionFirebase(page);
+
   // --- register (signs in on success) ---
   await page.goto('/account/register');
   await page.getByLabel(/your name/iu).fill(customer.displayName);
@@ -29,6 +32,10 @@ test('customer registers, orders, and submits payment', async ({ page }) => {
 
   // Lands on the account dashboard once registration + sign-in complete.
   await page.waitForURL(/\/account(\/|$)/u, { timeout: 30_000 });
+  expect(
+    productionFirebase(),
+    'customer Auth must talk to the emulator, not identitytoolkit.googleapis.com',
+  ).toEqual([]);
 
   // --- add a delivery address (checkout requires one) ---
   await page.goto('/account/addresses');

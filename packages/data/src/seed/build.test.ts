@@ -392,8 +392,22 @@ describe('products', () => {
     expect(jigsaw.safety.bisCertExpiry).toBeNull();
   });
 
-  it('seeds no media, because photography comes from the admin pipeline', () => {
-    expect(stackingRings().media).toEqual([]);
+  it('builds media entries from the catalogue as Storage object paths', () => {
+    // ROMP ships development placeholder artwork in its catalogue (real photography still
+    // arrives through the admin pipeline and overwrites it). Each seeded media item is a
+    // Storage object *path* — never a download URL — with the blurhash left null until the
+    // resize Function runs, and ordered from its position in the file.
+    const media = stackingRings().media;
+    expect(media.length).toBeGreaterThan(0);
+
+    const cover = media[0];
+    if (cover === undefined) throw new Error('expected a cover media item');
+    expect(cover.path).toBe('products/beechwood-stacking-rings/beechwood-stacking-rings.svg');
+    expect(cover.order).toBe(0);
+    expect(cover.blurhash).toBeNull();
+    expect(cover.alt.length).toBeGreaterThan(0);
+    expect(cover.width).toBeGreaterThan(0);
+    expect(cover.height).toBeGreaterThan(0);
   });
 
   it('still derives a price for a draft whose every variant is inactive', () => {

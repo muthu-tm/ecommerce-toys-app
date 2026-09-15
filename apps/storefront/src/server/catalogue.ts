@@ -19,6 +19,7 @@ import {
   findCategoryBySlug,
   findProductBySlug,
   firestoreSearchPort,
+  listFilterCategories,
   listNavCategories,
   listPublishedReviews,
   listVariantOptions,
@@ -186,7 +187,7 @@ export const getProductReviews = cache(
 );
 
 /**
- * The category tree for the storefront header.
+ * The category tree for the home-page rails (`showInNav`).
  *
  * `unstable_cache` with the `categories` tag, on top of the per-request `cache()`: the
  * per-request layer de-duplicates within one render, and the persistent layer holds the
@@ -197,6 +198,19 @@ export const getProductReviews = cache(
 export const getNavCategories = cache(async (): Promise<readonly WithId<CategoryDoc>[]> => {
   if (globalThis.__ROMP_TEST_SEARCH_PORT === undefined && !catalogueAvailable()) return [];
   return unstable_cache(async () => listNavCategories(context()), ['nav-categories'], {
+    tags: [cacheTags.categories],
+  })();
+});
+
+/**
+ * Categories flagged for the listing sidebar (`showInFilters`).
+ *
+ * Same caching posture as the nav tree: the sidebar is on every listing page, the
+ * collection is tiny, and a category write busts the `categories` tag.
+ */
+export const getFilterCategories = cache(async (): Promise<readonly WithId<CategoryDoc>[]> => {
+  if (globalThis.__ROMP_TEST_SEARCH_PORT === undefined && !catalogueAvailable()) return [];
+  return unstable_cache(async () => listFilterCategories(context()), ['filter-categories'], {
     tags: [cacheTags.categories],
   })();
 });

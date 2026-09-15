@@ -197,15 +197,19 @@ function PaymentSection({
   };
 
   return (
-    <Card className="flex flex-col items-center gap-4 p-6">
-      <h2 className="font-body font-semibold text-text-primary">Scan to pay</h2>
-      <QRCodeSVG
-        value={order.payment.qrPayload}
-        size={220}
-        marginSize={4}
-        title={`UPI payment for order ${order.humanId}`}
-        data-testid="upi-qr"
-      />
+    <Card className="flex flex-col items-center gap-4 bg-surface-elevated p-6">
+      <h2 className="font-display text-lg text-text-primary">Scan to pay</h2>
+      {/* A white frame around the QR so it scans reliably in dark mode, where a QR drawn in
+          the theme's text colour on a dark surface confuses many scanners. */}
+      <span className="rounded-md bg-surface p-3">
+        <QRCodeSVG
+          value={order.payment.qrPayload}
+          size={220}
+          marginSize={4}
+          title={`UPI payment for order ${order.humanId}`}
+          data-testid="upi-qr"
+        />
+      </span>
       <p className="font-body text-lg font-bold text-text-primary">
         {formatMoney(order.amounts.totalMinor, moneyFormat)}
       </p>

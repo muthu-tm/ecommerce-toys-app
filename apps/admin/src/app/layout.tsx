@@ -1,10 +1,12 @@
 import type { Metadata, Viewport } from 'next';
 
-import { SkipLink } from '@romp/ui';
+import { SkipLink, ThemeProvider, themeInitScript } from '@romp/ui';
 
 import './globals.css';
-import { AdminHeader } from '@/components/AdminHeader';
+import { AdminGate } from '@/components/AdminGate';
+import { AdminShell } from '@/components/AdminShell';
 import { fontClassName } from '@/generated/fonts';
+import { AuthProvider } from '@/lib/auth-context';
 import { brand, locale, theme } from '@/lib/store';
 
 /**
@@ -35,13 +37,26 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: { readonly children: React.ReactNode }) {
   return (
-    <html lang={locale.locale} className={fontClassName}>
+    <html lang={locale.locale} className={fontClassName} suppressHydrationWarning>
+      <head>
+        {/* No-flash theme script — see the storefront layout for the rationale. */}
+        <script dangerouslySetInnerHTML={{ __html: themeInitScript }} />
+      </head>
       <body className="min-h-dvh antialiased">
         <SkipLink />
-        <AdminHeader />
-        <main id="main-content" tabIndex={-1} className="mx-auto max-w-6xl px-4 py-8 lg:px-6">
-          {children}
-        </main>
+        <ThemeProvider>
+          {/*
+            One auth subscription for the whole backoffice. The shell reads it to show the
+            sidebar for an operator; the gate reads it to decide login / not-permitted / app.
+          */}
+          <AuthProvider>
+            <AdminShell>
+              <main id="main-content" tabIndex={-1}>
+                <AdminGate>{children}</AdminGate>
+              </main>
+            </AdminShell>
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

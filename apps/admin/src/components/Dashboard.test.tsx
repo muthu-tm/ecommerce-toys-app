@@ -29,6 +29,7 @@ describe('Dashboard', () => {
     expect(screen.getByRole('columnheader', { name: 'Paid' })).toBeInTheDocument();
     // The headline metrics tile the totals.
     expect(screen.getByText('Paid orders')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Overview' })).toBeInTheDocument();
   });
 
   it('sums revenue across days', () => {

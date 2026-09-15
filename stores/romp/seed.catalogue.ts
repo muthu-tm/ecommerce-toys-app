@@ -16,12 +16,16 @@ import { defineCatalogueSeed } from '@romp/store-config';
  *      `stock` key is a code from `warehouses`. The loader checks all three and
  *      reports every mismatch in one pass.
  *
- * `media` is intentionally empty. Product photography arrives through the admin
- * upload pipeline, which re-derives content types from magic bytes and generates the
- * responsive variants; a seed that wrote Storage paths directly would produce
- * documents pointing at objects that do not exist. Until photos are uploaded, cards
- * render the storefront's placeholder — which is visibly a placeholder, not a broken
- * image.
+ * `media` carries **development placeholder artwork** — a branded SVG per product in
+ * `assets/catalogue/`, referenced by `file`. It gives the demo catalogue a complete,
+ * image-rich look in local dev instead of the bare first-letter tile. Real photography
+ * still arrives through the admin upload pipeline, which re-derives content types from
+ * magic bytes, generates responsive variants and a blurhash, and overwrites these
+ * placeholders. The loader checks every referenced `file` exists, and `pnpm store:tokens`
+ * copies the artwork into each app's `public/media/products/<slug>/` so a same-origin
+ * `NEXT_PUBLIC_MEDIA_BASE_URL=/media` serves them locally with no Storage host configured.
+ * A store that ships no `media` (for example `_template`) still renders the placeholder
+ * tile — the honest state of a store before its photography exists.
  */
 export default defineCatalogueSeed({
   products: [
@@ -35,6 +39,14 @@ export default defineCatalogueSeed({
       ageBand: '0-2',
       badge: 'Bestseller',
       featured: true,
+      media: [
+        {
+          file: 'beechwood-stacking-rings.svg',
+          alt: 'Beechwood stacking rings on a weighted post',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['hand–eye coordination', 'size ordering', 'pincer grip'],
       boxItems: ['Weighted beech post', '7 graded rings', 'Cotton drawstring bag'],
       safety: {
@@ -75,6 +87,14 @@ export default defineCatalogueSeed({
       ageBand: '0-2',
       badge: null,
       featured: false,
+      media: [
+        {
+          file: 'first-shapes-puzzle-board.svg',
+          alt: 'First shapes puzzle board with six chunky pieces',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['shape recognition', 'problem solving'],
       boxItems: ['Puzzle board', '6 shape pieces'],
       safety: {
@@ -106,6 +126,14 @@ export default defineCatalogueSeed({
       ageBand: '3-5',
       badge: 'New',
       featured: true,
+      media: [
+        {
+          file: 'market-stall-play-set.svg',
+          alt: 'Fold-flat wooden market stall with felt produce',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['pretend play', 'early numeracy', 'turn taking'],
       boxItems: [
         'Fold-flat stall with chalkboard',
@@ -151,6 +179,14 @@ export default defineCatalogueSeed({
       ageBand: '6-8',
       badge: null,
       featured: true,
+      media: [
+        {
+          file: 'gear-machine-builder.svg',
+          alt: 'Interlocking gears and cranks on a pegboard',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['mechanical reasoning', 'sequencing', 'persistence'],
       boxItems: ['Pegboard base', '90 gears and connectors', '2 hand cranks', 'Build card'],
       safety: {
@@ -203,6 +239,14 @@ export default defineCatalogueSeed({
       ageBand: '9-12',
       badge: null,
       featured: false,
+      media: [
+        {
+          file: 'city-map-jigsaw-500.svg',
+          alt: 'Hand-drawn city-map jigsaw, 500 pieces',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['visual scanning', 'patience', 'spatial memory'],
       boxItems: ['500 pieces', 'Full-size reference poster'],
       safety: {
@@ -234,6 +278,14 @@ export default defineCatalogueSeed({
       ageBand: '3-5',
       badge: null,
       featured: false,
+      media: [
+        {
+          file: 'balance-board-outdoor.svg',
+          alt: 'Curved birch balance board with felt underside',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['balance', 'core strength', 'open-ended play'],
       boxItems: ['Birch balance board with felt underside'],
       safety: {
@@ -276,6 +328,14 @@ export default defineCatalogueSeed({
       ageBand: '3-5',
       badge: null,
       featured: false,
+      media: [
+        {
+          file: 'why-does-it-rain-book.svg',
+          alt: 'Lift-the-flap board book cover',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['early science', 'vocabulary', 'shared reading'],
       boxItems: ['Board book, 32 pages'],
       safety: {
@@ -316,6 +376,14 @@ export default defineCatalogueSeed({
       ageBand: '9-12',
       badge: null,
       featured: false,
+      media: [
+        {
+          file: 'weaving-loom-starter.svg',
+          alt: 'Beech lap weaving loom with shuttles and cotton warp',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['fine motor', 'pattern making', 'finishing a thing'],
       boxItems: [
         'Beech loom frame',
@@ -357,6 +425,14 @@ export default defineCatalogueSeed({
       // real seeded data rather than against a fixture.
       status: 'draft',
       featured: false,
+      media: [
+        {
+          file: 'shadow-theatre-kit.svg',
+          alt: 'Folding shadow-theatre screen with jointed puppets',
+          width: 520,
+          height: 360,
+        },
+      ],
       skills: ['storytelling', 'stagecraft'],
       boxItems: ['Folding screen', 'LED lamp', '20 jointed puppets', 'Blanks and punch'],
       safety: {

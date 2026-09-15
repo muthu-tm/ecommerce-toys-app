@@ -1,5 +1,6 @@
 import type { DailyAnalyticsDoc, Money } from '@romp/contracts';
-import { Card } from '@romp/ui';
+import { Card, PageHeader, Stat } from '@romp/ui';
+
 
 import { formatMoney, locale, moneyFormat } from '@/lib/store';
 
@@ -36,18 +37,20 @@ export function Dashboard({
 
   return (
     <section aria-labelledby="dashboard-heading" className="flex flex-col gap-6">
-      <h1 id="dashboard-heading" className="font-display text-2xl text-text-primary">
-        Dashboard
-      </h1>
-      <p className="font-body text-sm text-text-muted">
-        {from} to {to}
-      </p>
+      <PageHeader
+        title={<span id="dashboard-heading">Overview</span>}
+        description={`${from} to ${to}`}
+      />
 
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
-        <Metric label="Revenue" value={formatMoney(totalRevenue, moneyFormat)} />
-        <Metric label="Orders" value={String(totalOrders)} />
-        <Metric label="Paid orders" value={String(totalPaid)} />
-        <Metric label="Refunded" value={formatMoney(totalRefunded, moneyFormat)} />
+        <Stat label="Revenue" value={formatMoney(totalRevenue, moneyFormat)} tone="success" />
+        <Stat label="Orders" value={String(totalOrders)} />
+        <Stat label="Paid orders" value={String(totalPaid)} />
+        <Stat
+          label="Refunded"
+          value={formatMoney(totalRefunded, moneyFormat)}
+          tone={totalRefunded > 0 ? 'danger' : 'default'}
+        />
       </div>
 
       {days.length === 0 ? (
@@ -59,7 +62,7 @@ export function Dashboard({
           <table className="w-full border-collapse">
             <caption className="sr-only">Daily sales</caption>
             <thead>
-              <tr className="border-b border-border text-left">
+              <tr className="border-b border-border bg-surface-alt text-left">
                 <Th>Date</Th>
                 <Th>Orders</Th>
                 <Th>Paid</Th>
@@ -82,16 +85,6 @@ export function Dashboard({
         </Card>
       )}
     </section>
-  );
-}
-
-/** A headline metric tile. */
-function Metric({ label, value }: { readonly label: string; readonly value: string }) {
-  return (
-    <Card className="flex flex-col gap-1 p-4">
-      <span className="font-body text-sm text-text-muted">{label}</span>
-      <span className="font-display text-xl text-text-primary">{value}</span>
-    </Card>
   );
 }
 

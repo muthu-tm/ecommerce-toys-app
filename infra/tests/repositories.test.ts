@@ -651,8 +651,12 @@ describe('search against the seeded catalogue', () => {
     expect(item).toBeDefined();
     expect(item).not.toHaveProperty('description');
     expect(item).not.toHaveProperty('searchTokens');
-    // No photography is seeded, so a card renders the storefront placeholder.
-    expect(item?.cover).toBeNull();
+    // The seed ships development placeholder artwork, so a card carries a cover — a Storage
+    // object path with no blurhash yet (the resize Function has not run). It is a card
+    // projection, so it keeps only the cover fields a card renders.
+    expect(item?.cover).not.toBeNull();
+    expect(item?.cover?.path).toMatch(/^products\//u);
+    expect(item?.cover?.blurhash).toBeNull();
   });
 
   it('suggests products for the search box', async () => {

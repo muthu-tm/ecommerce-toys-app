@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="360" viewBox="0 0 520 360" role="img" aria-label="Gear machine builder">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#1d1526"/>
+      <stop offset="1" stop-color="#2c1e3d"/>
+    </linearGradient>
+  </defs>
+  <rect width="520" height="360" fill="url(#bg)"/>
+  <text x="48" y="150" font-family="'Archivo Black', Arial Black, sans-serif" font-size="150" font-weight="900" fill="#c79bff" opacity="0.28">G</text>
+  
+        <g transform="translate(360 210)" fill="#c79bff" opacity="0.9">
+          <circle r="58"/>
+          <circle r="24" fill="#0e0e10"/>
+          <rect x="56.0" y="-10.0" width="20" height="20" rx="4"/><rect x="36.7" y="36.7" width="20" height="20" rx="4"/><rect x="-10.0" y="56.0" width="20" height="20" rx="4"/><rect x="-56.7" y="36.7" width="20" height="20" rx="4"/><rect x="-76.0" y="-10.0" width="20" height="20" rx="4"/><rect x="-56.7" y="-56.7" width="20" height="20" rx="4"/><rect x="-10.0" y="-76.0" width="20" height="20" rx="4"/><rect x="36.7" y="-56.7" width="20" height="20" rx="4"/>
+        </g>
+  <text x="48" y="312" font-family="'Archivo', Arial, sans-serif" font-size="24" font-weight="700" fill="#e9dcff">Gear machine builder</text>
+  <text x="48" y="336" font-family="'Archivo', Arial, sans-serif" font-size="14" font-weight="500" fill="#e9dcff" opacity="0.7">Tinker Bay</text>
+</svg>

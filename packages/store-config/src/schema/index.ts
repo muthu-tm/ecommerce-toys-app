@@ -95,16 +95,26 @@ export type { FeatureFlags } from './features';
 export { LocaleConfigSchema } from './locale';
 export type { LocaleConfig } from './locale';
 export {
+  DefaultThemeModeSchema,
   FontSchema,
   FontSourceSchema,
   MotionIntensitySchema,
   ThemeColorsSchema,
   ThemeFontsSchema,
+  ThemeModesSchema,
   ThemeMotionSchema,
   ThemeRadiiSchema,
   ThemeSchema,
   ThemeShadowsSchema,
 } from './theme';
-export type { Font, MotionIntensity, Theme, ThemeColors, ThemeRadii } from './theme';
+export type {
+  DefaultThemeMode,
+  Font,
+  MotionIntensity,
+  Theme,
+  ThemeColors,
+  ThemeModes,
+  ThemeRadii,
+} from './theme';
 export { WarehouseConfigSchema, WarehousesSchema } from './warehouses';
 export type { WarehouseConfig } from './warehouses';

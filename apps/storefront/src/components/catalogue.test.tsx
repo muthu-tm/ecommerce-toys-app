@@ -2,9 +2,10 @@ import { render, screen, within } from '@testing-library/react';
 import axe from 'axe-core';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
+import { EmptyState } from '@romp/ui';
+
 import { aSummary } from '@/test-support/product';
 
-import { EmptyState } from './EmptyState';
 import { Pagination } from './Pagination';
 import { ProductCard } from './ProductCard';
 import { ProductGrid, ProductGridSkeleton } from './ProductGrid';

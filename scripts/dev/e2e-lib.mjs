@@ -48,6 +48,9 @@ export function emulatorProfileEnv(storeId = 'romp', overrides = {}) {
     // Honoured by seed:admins ONLY against the Auth emulator, so it is inert anywhere real.
     ADMIN_SEED_PASSWORD: 'e2e-admin-password-01',
     NEXT_PUBLIC_API_BASE_URL: `http://localhost:${PORTS.api}`,
+    // Development placeholder artwork is copied into each app's public/media by
+    // `pnpm store:tokens`, so a same-origin `/media` base serves it with no Storage host.
+    NEXT_PUBLIC_MEDIA_BASE_URL: '/media',
     NEXT_PUBLIC_USE_FIREBASE_EMULATOR: 'true',
     NEXT_PUBLIC_FIREBASE_AUTH_EMULATOR_HOST: `127.0.0.1:${PORTS.auth}`,
     NEXT_PUBLIC_FIREBASE_FIRESTORE_HOST: `127.0.0.1:${PORTS.firestore}`,

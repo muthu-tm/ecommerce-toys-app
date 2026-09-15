@@ -29,6 +29,7 @@ test('emulatorProfileEnv sets the full offline contract', () => {
   assert.equal(env.FIREBASE_STORAGE_EMULATOR_HOST, `127.0.0.1:${PORTS.storage}`);
   assert.equal(env.NEXT_PUBLIC_USE_FIREBASE_EMULATOR, 'true');
   assert.equal(env.NEXT_PUBLIC_API_BASE_URL, `http://localhost:${PORTS.api}`);
+  assert.equal(env.NEXT_PUBLIC_MEDIA_BASE_URL, '/media');
   assert.equal(env.CORS_ORIGINS, 'http://localhost:3000,http://localhost:3001');
   assert.equal(env.ADMIN_SEED_PASSWORD, 'e2e-admin-password-01');
 });

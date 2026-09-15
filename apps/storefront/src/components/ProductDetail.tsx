@@ -1,7 +1,8 @@
+
 import type { ProductDoc, PublicReviewView, VariantOption } from '@romp/contracts';
 import type { WithId } from '@romp/data';
 import { renderTemplate } from '@romp/store-config';
-import { Badge } from '@romp/ui';
+import { Badge, Card } from '@romp/ui';
 
 import { Breadcrumbs } from '@/components/Breadcrumbs';
 import type { GalleryImage } from '@/components/ProductGallery';
@@ -76,6 +77,10 @@ export function ProductDetail({ product, variants, categoryName, reviews }: Prod
       <div className="grid gap-8 lg:grid-cols-2">
         <ProductGallery images={images} productName={product.name} />
 
+        {/*
+          The buy box sits on an elevated card so it reads as the primary action zone,
+          distinct from the descriptive copy below it.
+        */}
         <div className="flex flex-col gap-5">
           <div className="flex flex-col gap-2">
             <p className="font-body text-sm tracking-wide text-text-muted uppercase">
@@ -88,23 +93,32 @@ export function ProductDetail({ product, variants, categoryName, reviews }: Prod
               {features.wishlist ? <WishlistHeart productId={product.id} /> : null}
             </div>
             {product.ratingCount > 0 && (
-              <p className="font-body text-sm text-text-muted">
-                {product.ratingAvg.toFixed(1)} ·{' '}
-                {renderTemplate(copy.ratingCountLabel, { count: String(product.ratingCount) })}
+              <p className="flex items-center gap-1.5 font-body text-sm text-text-secondary">
+                <span aria-hidden="true" className="text-warning">
+                  ★
+                </span>
+                <span className="font-semibold text-text-primary">
+                  {product.ratingAvg.toFixed(1)}
+                </span>
+                <span className="text-text-muted">
+                  · {renderTemplate(copy.ratingCountLabel, { count: String(product.ratingCount) })}
+                </span>
               </p>
             )}
           </div>
 
-          <VariantSelector
-            productId={product.id}
-            variants={variants}
-            labels={{
-              selectVariant: copy.selectVariant,
-              addToCart: copy.addToCart,
-              outOfStock: copy.outOfStock,
-            }}
-            moneyFormat={moneyFormat}
-          />
+          <Card className="bg-surface-elevated p-5">
+            <VariantSelector
+              productId={product.id}
+              variants={variants}
+              labels={{
+                selectVariant: copy.selectVariant,
+                addToCart: copy.addToCart,
+                outOfStock: copy.outOfStock,
+              }}
+              moneyFormat={moneyFormat}
+            />
+          </Card>
 
           <p className="font-body text-base leading-relaxed text-text-secondary">
             {product.description}
@@ -112,41 +126,46 @@ export function ProductDetail({ product, variants, categoryName, reviews }: Prod
         </div>
       </div>
 
-      <div className="grid gap-8 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-3">
         {product.boxItems.length > 0 && (
-          <section aria-labelledby="pdp-box">
+          <Card as="section" className="p-5" aria-labelledby="pdp-box">
             <h2 id="pdp-box" className="font-display text-lg text-text-primary">
               {copy.inTheBoxTitle}
             </h2>
-            <ul className="mt-2 flex flex-col gap-1 font-body text-text-secondary">
+            <ul className="mt-3 flex flex-col gap-1.5 font-body text-text-secondary">
               {product.boxItems.map((item) => (
-                <li key={item}>{item}</li>
+                <li key={item} className="flex gap-2">
+                  <span aria-hidden="true" className="text-accent">
+                    •
+                  </span>
+                  {item}
+                </li>
               ))}
             </ul>
-          </section>
+          </Card>
         )}
 
         {product.skills.length > 0 && (
-          <section aria-labelledby="pdp-skills">
+          <Card as="section" className="p-5" aria-labelledby="pdp-skills">
             <h2 id="pdp-skills" className="font-display text-lg text-text-primary">
               {copy.skillsTitle}
             </h2>
-            <ul className="mt-2 flex flex-wrap gap-2">
+            <ul className="mt-3 flex flex-wrap gap-2">
               {product.skills.map((skill) => (
                 <li key={skill}>
                   <Badge tone="neutral">{skill}</Badge>
                 </li>
               ))}
             </ul>
-          </section>
+          </Card>
         )}
 
         {showSafety && (
-          <section aria-labelledby="pdp-safety">
+          <Card as="section" className="p-5" aria-labelledby="pdp-safety">
             <h2 id="pdp-safety" className="font-display text-lg text-text-primary">
               {copy.safetyTitle}
             </h2>
-            <ul className="mt-2 flex flex-col gap-1 font-body text-text-secondary">
+            <ul className="mt-3 flex flex-col gap-1.5 font-body text-text-secondary">
               {product.safety.bisCertified && (
                 <li>
                   {copy.bisCertifiedLabel}
@@ -158,7 +177,7 @@ export function ProductDetail({ product, variants, categoryName, reviews }: Prod
                 <li className="text-warning">{copy.smallPartsWarning}</li>
               )}
             </ul>
-          </section>
+          </Card>
         )}
       </div>
 

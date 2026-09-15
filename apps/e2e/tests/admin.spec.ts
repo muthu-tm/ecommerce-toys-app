@@ -7,6 +7,7 @@ import {
   verifyPayment,
 } from '../fixtures/admin-api';
 import { SEEDED_ADMIN, readOrderHandoff } from '../fixtures/data';
+import { watchProductionFirebase } from '../fixtures/network';
 
 /**
  * The admin happy path: settle the order the customer flow placed.
@@ -14,12 +15,12 @@ import { SEEDED_ADMIN, readOrderHandoff } from '../fixtures/data';
  * Sign in as the seeded owner → find the pending order → verify its payment → advance
  * fulfilment → confirm the backoffice order detail reflects paid + packed.
  *
- * The admin app ships no browser sign-in surface in v1.0 (operator sign-in is a later
- * feature) and no payment-verification control, so the write actions go through the real
- * admin API with a real role-claimed token obtained from the Auth emulator — the same routes
- * the future UI will call. The assertion is against the real admin *read* UI on :3001, so the
- * end-to-end effect (an order moving to paid and packed) is verified where an operator would
- * see it.
+ * The write actions (verify payment, advance fulfilment) go through the real admin API with a
+ * real role-claimed token from the Auth emulator — there is no UI payment-verification control,
+ * so these are the same routes an operator's controls call. The browser then signs in through
+ * the real backoffice login form (the app is now gated behind an operator sign-in), and the
+ * assertion is against the real admin *read* UI on :3001, so the end-to-end effect (an order
+ * moving to paid and packed) is verified where an operator would see it.
  */
 
 test.describe.configure({ mode: 'serial' });
@@ -39,9 +40,24 @@ test('admin verifies payment and fulfils the order', async ({ page }) => {
   await verifyPayment(token, order.orderId, order.amounts.totalMinor);
   await advanceFulfilment(token, order.orderId, 'packed');
 
+  // --- sign in through the backoffice UI so the access gate lets us in ---
+  // The backoffice now guards every page behind an operator sign-in (the gate checks the
+  // role claim via GET /v1/admin/me). Signing in through the real login form is what a real
+  // operator does, and it exercises the gate end to end rather than bypassing it.
+  const productionFirebase = watchProductionFirebase(page);
+  await page.goto('/');
+  await page.getByLabel(/email or mobile/iu).fill(SEEDED_ADMIN.email);
+  await page.getByLabel(/password/iu).fill(SEEDED_ADMIN.password);
+  await page.getByRole('button', { name: 'Sign in' }).click();
+  await expect(page.getByRole('button', { name: 'Sign out' })).toBeVisible({ timeout: 15_000 });
+  expect(
+    productionFirebase(),
+    'admin Auth must talk to the emulator, not identitytoolkit.googleapis.com',
+  ).toEqual([]);
+
   // --- confirm the backoffice read UI reflects the settled state ---
   await page.goto(`/orders/${order.orderId}`);
-  await expect(page.getByRole('heading', { name: humanId })).toBeVisible();
+  await expect(page.getByRole('heading', { name: humanId })).toBeVisible({ timeout: 15_000 });
   // The two status badges sit next to the heading: payment "Paid" and fulfilment "Packed".
   // `.first()` because "Packed" also appears later in the audit timeline.
   await expect(page.getByText('Paid', { exact: true }).first()).toBeVisible({ timeout: 15_000 });

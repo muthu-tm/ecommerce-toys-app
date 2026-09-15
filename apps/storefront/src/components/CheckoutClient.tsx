@@ -116,84 +116,106 @@ export function CheckoutClient() {
 
   return (
     <section aria-labelledby="checkout-heading" className="flex flex-col gap-6">
-      <h1 id="checkout-heading" className="font-display text-2xl text-text-primary">
+      <h1 id="checkout-heading" className="font-display text-3xl text-text-primary">
         Checkout
       </h1>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="font-body font-semibold text-text-primary">Deliver to</legend>
-        {addresses.map((address) => (
-          <AddressOption
-            key={address.id}
-            address={address}
-            checked={address.id === addressId}
-            onSelect={() => {
-              setAddressId(address.id);
-            }}
-          />
-        ))}
-      </fieldset>
+      <div className="grid gap-6 lg:grid-cols-[1fr_22rem] lg:items-start">
+        {/* Left column: what the customer chooses. */}
+        <div className="flex flex-col gap-6">
+          <Card className="p-5">
+            <fieldset className="flex flex-col gap-3">
+              <legend className="mb-1 font-display text-lg text-text-primary">Deliver to</legend>
+              {addresses.map((address) => (
+                <AddressOption
+                  key={address.id}
+                  address={address}
+                  checked={address.id === addressId}
+                  onSelect={() => {
+                    setAddressId(address.id);
+                  }}
+                />
+              ))}
+            </fieldset>
+          </Card>
 
-      <fieldset className="flex flex-col gap-3">
-        <legend className="font-body font-semibold text-text-primary">Delivery speed</legend>
-        <div className="flex gap-4">
-          {(['standard', 'express'] as const).map((speed) => (
-            <label key={speed} className="flex items-center gap-2 font-body text-text-primary">
-              <input
-                type="radio"
-                name="delivery-speed"
-                className="size-4"
-                value={speed}
-                checked={deliverySpeed === speed}
-                disabled={placing}
-                onChange={() => {
-                  setDeliverySpeed(speed);
-                }}
-              />
-              {speed === 'standard' ? 'Standard' : 'Express'}
-            </label>
-          ))}
+          <Card className="p-5">
+            <fieldset className="flex flex-col gap-3">
+              <legend className="mb-1 font-display text-lg text-text-primary">
+                Delivery speed
+              </legend>
+              <div className="flex flex-col gap-2 sm:flex-row sm:gap-3">
+                {(['standard', 'express'] as const).map((speed) => (
+                  <label
+                    key={speed}
+                    className="flex flex-1 cursor-pointer items-center gap-2 rounded-md border border-border p-3 font-body text-text-primary focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus-ring has-[:checked]:border-border-strong has-[:checked]:bg-surface-alt"
+                  >
+                    <input
+                      type="radio"
+                      name="delivery-speed"
+                      className="size-4"
+                      value={speed}
+                      checked={deliverySpeed === speed}
+                      disabled={placing}
+                      onChange={() => {
+                        setDeliverySpeed(speed);
+                      }}
+                    />
+                    {speed === 'standard' ? 'Standard' : 'Express'}
+                  </label>
+                ))}
+              </div>
+            </fieldset>
+          </Card>
         </div>
-      </fieldset>
 
-      {quote !== null ? (
-        <dl className="flex flex-col gap-2 border-t border-border pt-4 font-body text-text-primary">
-          <Row label="Subtotal" value={formatMoney(quote.subtotalMinor, moneyFormat)} />
-          {quote.giftWrapMinor > 0 ? (
-            <Row label="Gift wrap" value={formatMoney(quote.giftWrapMinor, moneyFormat)} />
+        {/* Right column: the priced order summary, sticky on wide viewports. */}
+        <Card className="flex flex-col gap-4 bg-surface-elevated p-5 lg:sticky lg:top-20">
+          <h2 className="font-display text-lg text-text-primary">Order summary</h2>
+          {quote !== null ? (
+            <dl className="flex flex-col gap-2 font-body text-text-primary">
+              <Row label="Subtotal" value={formatMoney(quote.subtotalMinor, moneyFormat)} />
+              {quote.giftWrapMinor > 0 ? (
+                <Row label="Gift wrap" value={formatMoney(quote.giftWrapMinor, moneyFormat)} />
+              ) : null}
+              <Row
+                label="Shipping"
+                value={
+                  quote.shippingMinor === 0 ? 'Free' : formatMoney(quote.shippingMinor, moneyFormat)
+                }
+              />
+              <Row label="Tax" value={formatMoney(quote.taxMinor, moneyFormat)} />
+              <div className="mt-2 flex items-center justify-between border-t border-border pt-3">
+                <dt className="font-display text-lg">Total</dt>
+                <dd className="font-display text-2xl" data-testid="checkout-total">
+                  {formatMoney(quote.totalMinor, moneyFormat)}
+                </dd>
+              </div>
+            </dl>
+          ) : (
+            <p className="font-body text-sm text-text-muted">
+              {quoting ? 'Pricing your bag…' : 'Choose a delivery address to see your total.'}
+            </p>
+          )}
+
+          {error !== null ? (
+            <p role="alert" className="font-body text-sm text-danger">
+              {error}
+            </p>
           ) : null}
-          <Row
-            label="Shipping"
-            value={
-              quote.shippingMinor === 0 ? 'Free' : formatMoney(quote.shippingMinor, moneyFormat)
-            }
-          />
-          <Row label="Tax" value={formatMoney(quote.taxMinor, moneyFormat)} />
-          <div className="mt-2 flex items-center justify-between border-t border-border pt-2">
-            <dt className="text-lg font-bold">Total</dt>
-            <dd className="text-lg font-bold" data-testid="checkout-total">
-              {formatMoney(quote.totalMinor, moneyFormat)}
-            </dd>
-          </div>
-        </dl>
-      ) : null}
 
-      {error !== null ? (
-        <p role="alert" className="font-body text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
-
-      <div className="flex items-center justify-between">
-        <ButtonLink href="/cart" variant="ghost">
-          Back to bag
-        </ButtonLink>
-        <Button
-          onClick={place}
-          disabled={placing || quoting || quote === null || addressId === null}
-        >
-          {placing ? 'Placing order…' : 'Place order'}
-        </Button>
+          <Button
+            fullWidth
+            size="lg"
+            onClick={place}
+            disabled={placing || quoting || quote === null || addressId === null}
+          >
+            {placing ? 'Placing order…' : 'Place order'}
+          </Button>
+          <ButtonLink href="/cart" variant="ghost" fullWidth>
+            Back to bag
+          </ButtonLink>
+        </Card>
       </div>
     </section>
   );

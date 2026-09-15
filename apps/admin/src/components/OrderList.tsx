@@ -3,7 +3,7 @@ import Link from 'next/link';
 import type { OrderDoc, OrderStatus } from '@romp/contracts';
 import { OrderStatusSchema } from '@romp/contracts';
 import type { WithId } from '@romp/data';
-import { Badge, ButtonLink, Card } from '@romp/ui';
+import { Badge, ButtonLink, Card, PageHeader } from '@romp/ui';
 
 import {
   fulfilmentStatusLabel,
@@ -34,9 +34,7 @@ export function OrderList({
 }) {
   return (
     <section aria-labelledby="orders-heading" className="flex flex-col gap-6">
-      <h1 id="orders-heading" className="font-display text-2xl text-text-primary">
-        Orders
-      </h1>
+      <PageHeader title={<span id="orders-heading">Orders</span>} />
 
       <form role="search" action="/orders" method="get" className="flex flex-wrap items-end gap-2">
         <label className="flex flex-col gap-1">
@@ -78,28 +76,32 @@ export function OrderList({
         <ul className="flex flex-col gap-2">
           {orders.map((order) => (
             <li key={order.id}>
-              <Link
-                href={`/orders/${order.id}`}
-                className="flex items-center justify-between gap-4 rounded-md border border-border bg-surface px-4 py-3 hover:border-border-strong"
-              >
-                <span className="flex flex-col">
-                  <span className="font-body font-semibold text-text-primary">{order.humanId}</span>
-                  <span className="font-body text-sm text-text-muted">
-                    {order.items.length} item{order.items.length === 1 ? '' : 's'}
+              <Card interactive>
+                <Link
+                  href={`/orders/${order.id}`}
+                  className="flex flex-wrap items-center justify-between gap-4 p-4 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+                >
+                  <span className="flex flex-col">
+                    <span className="font-body font-semibold text-text-primary">
+                      {order.humanId}
+                    </span>
+                    <span className="font-body text-sm text-text-muted">
+                      {order.items.length} item{order.items.length === 1 ? '' : 's'}
+                    </span>
                   </span>
-                </span>
-                <span className="flex items-center gap-3">
-                  <span className="font-body text-sm text-text-primary">
-                    {formatMoney(order.amounts.totalMinor, moneyFormat)}
+                  <span className="flex items-center gap-3">
+                    <span className="font-body font-semibold text-text-primary">
+                      {formatMoney(order.amounts.totalMinor, moneyFormat)}
+                    </span>
+                    <Badge tone={orderStatusTone(order.status)}>
+                      {orderStatusLabel(order.status)}
+                    </Badge>
+                    <Badge tone={fulfilmentStatusTone(order.fulfilment.status)}>
+                      {fulfilmentStatusLabel(order.fulfilment.status)}
+                    </Badge>
                   </span>
-                  <Badge tone={orderStatusTone(order.status)}>
-                    {orderStatusLabel(order.status)}
-                  </Badge>
-                  <Badge tone={fulfilmentStatusTone(order.fulfilment.status)}>
-                    {fulfilmentStatusLabel(order.fulfilment.status)}
-                  </Badge>
-                </span>
-              </Link>
+                </Link>
+              </Card>
             </li>
           ))}
         </ul>

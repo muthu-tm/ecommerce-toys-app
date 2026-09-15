@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="520" height="360" viewBox="0 0 520 360" role="img" aria-label="City map jigsaw, 500 pieces">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#0f2420"/>
+      <stop offset="1" stop-color="#153a31"/>
+    </linearGradient>
+  </defs>
+  <rect width="520" height="360" fill="url(#bg)"/>
+  <text x="48" y="150" font-family="'Archivo Black', Arial Black, sans-serif" font-size="150" font-weight="900" fill="#5ee9a0" opacity="0.28">C</text>
+  
+        <path d="M320 150h48a18 18 0 1 1 36 0h48v48a18 18 0 1 1 0 36v48h-48a18 18 0 1 0-36 0h-48v-48a18 18 0 1 0 0-36z"
+          fill="#5ee9a0" opacity="0.9"/>
+  <text x="48" y="312" font-family="'Archivo', Arial, sans-serif" font-size="24" font-weight="700" fill="#c8f7e2">City map jigsaw, 500 pieces</text>
+  <text x="48" y="336" font-family="'Archivo', Arial, sans-serif" font-size="14" font-weight="500" fill="#c8f7e2" opacity="0.7">Paper Lane</text>
+</svg>

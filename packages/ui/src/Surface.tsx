@@ -1,20 +1,26 @@
-import type { HTMLAttributes, ReactNode } from 'react';
+import type { ElementType, HTMLAttributes, ReactNode } from 'react';
 
 import { cn } from './cn';
 import { FOCUS_RING } from './focus';
 import { TRANSITION } from './motion';
 
 /** A raised panel. The default container for product cards, forms and summaries. */
-export interface CardProps extends Omit<HTMLAttributes<HTMLDivElement>, 'className'> {
+export interface CardProps extends Omit<HTMLAttributes<HTMLElement>, 'className'> {
   readonly className?: string;
   readonly children: ReactNode;
   /** Adds hover lift. Only for cards that are themselves a link or button. */
   readonly interactive?: boolean;
+  /**
+   * The element to render. Defaults to `div`; pass `section`, `article` or `li` when the
+   * card is a semantic region so the document outline stays correct — a card carrying a
+   * heading and `aria-labelledby` should be a `section`, not a `div`.
+   */
+  readonly as?: ElementType;
 }
 
-export function Card({ className, children, interactive = false, ...rest }: CardProps) {
+export function Card({ className, children, interactive = false, as: Element = 'div', ...rest }: CardProps) {
   return (
-    <div
+    <Element
       className={cn(
         'rounded-lg border border-border bg-surface shadow-card',
         interactive &&
@@ -25,7 +31,7 @@ export function Card({ className, children, interactive = false, ...rest }: Card
       {...rest}
     >
       {children}
-    </div>
+    </Element>
   );
 }
 

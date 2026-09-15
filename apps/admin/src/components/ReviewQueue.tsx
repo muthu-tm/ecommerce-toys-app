@@ -1,6 +1,7 @@
+
 import type { ReviewDoc } from '@romp/contracts';
 import type { WithId } from '@romp/data';
-import { Badge, Card } from '@romp/ui';
+import { Badge, Card, PageHeader } from '@romp/ui';
 
 import { ReviewModerationActions } from '@/components/ReviewModerationActions';
 
@@ -17,9 +18,14 @@ import { ReviewModerationActions } from '@/components/ReviewModerationActions';
 export function ReviewQueue({ reviews }: { readonly reviews: readonly WithId<ReviewDoc>[] }) {
   return (
     <section aria-labelledby="reviews-heading" className="flex flex-col gap-6">
-      <h1 id="reviews-heading" className="font-display text-2xl text-text-primary">
-        Reviews awaiting moderation
-      </h1>
+      <PageHeader
+        title={<span id="reviews-heading">Reviews awaiting moderation</span>}
+        description={
+          reviews.length > 0
+            ? `${String(reviews.length)} in the queue`
+            : undefined
+        }
+      />
 
       {reviews.length === 0 ? (
         <Card className="p-8 text-center">
@@ -32,9 +38,9 @@ export function ReviewQueue({ reviews }: { readonly reviews: readonly WithId<Rev
               <Card className="flex flex-col gap-3 p-5">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <div className="flex items-center gap-2">
-                    <span aria-hidden="true" className="font-body text-accent">
-                      {'★'.repeat(review.rating)}
-                      {'☆'.repeat(5 - review.rating)}
+                    <span aria-hidden="true" className="font-body">
+                      <span className="text-warning">{'★'.repeat(review.rating)}</span>
+                      <span className="text-text-muted">{'☆'.repeat(5 - review.rating)}</span>
                     </span>
                     <span className="sr-only">{review.rating} out of 5 stars</span>
                     <h2 className="font-display text-base text-text-primary">{review.title}</h2>

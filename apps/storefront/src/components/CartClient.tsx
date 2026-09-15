@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 
 import type { CartView } from '@romp/contracts';
 import { formatMoney } from '@romp/contracts';
-import { Badge, Button, ButtonLink, Card } from '@romp/ui';
+import { Badge, Button, ButtonLink, Card, InitialTile } from '@romp/ui';
 
 import { CartApiError, cartApi } from '@/lib/cart-api';
 import { commerce, content, mediaUrl, moneyFormat } from '@/lib/store';
@@ -67,11 +67,26 @@ export function CartClient() {
 
   if (cart === null || cart.items.length === 0) {
     return (
-      <Card className="p-8 text-center">
+      <Card className="mx-auto flex max-w-md flex-col items-center gap-4 p-10 text-center">
+        <span
+          aria-hidden="true"
+          className="inline-flex size-14 items-center justify-center rounded-pill bg-surface-alt text-text-muted"
+        >
+          <svg viewBox="0 0 24 24" className="size-7" fill="none">
+            <path
+              d="M5 7h14l-1.2 11H6.2L5 7zM9 7V6a3 3 0 0 1 6 0v1"
+              stroke="currentColor"
+              strokeWidth="2"
+              strokeLinecap="round"
+              strokeLinejoin="round"
+            />
+          </svg>
+        </span>
         <h1 className="font-display text-2xl text-text-primary">
           {content.emptyStates.emptyCart.title}
         </h1>
-        <p className="mt-2 font-body text-text-muted">{content.emptyStates.emptyCart.body}</p>
+        <p className="font-body text-text-secondary">{content.emptyStates.emptyCart.body}</p>
+        <ButtonLink href="/c/all">Browse toys</ButtonLink>
       </Card>
     );
   }
@@ -90,17 +105,19 @@ export function CartClient() {
               key={item.variantId}
               className="flex items-center gap-4 rounded-md border border-border bg-surface p-4"
             >
-              {image !== null ? (
-                <img
-                  src={image}
-                  alt=""
-                  width={64}
-                  height={64}
-                  className="size-16 rounded-md object-cover"
-                />
-              ) : (
-                <div className="size-16 rounded-md bg-surface-alt" aria-hidden="true" />
-              )}
+              <span className="size-16 shrink-0 overflow-hidden rounded-md">
+                {image !== null ? (
+                  <img
+                    src={image}
+                    alt=""
+                    width={64}
+                    height={64}
+                    className="size-16 object-cover"
+                  />
+                ) : (
+                  <InitialTile name={item.nameSnapshot} size="sm" />
+                )}
+              </span>
 
               <div className="flex flex-1 flex-col">
                 <span className="font-body font-semibold text-text-primary">
@@ -158,33 +175,44 @@ export function CartClient() {
         })}
       </ul>
 
-      <div className="flex items-center justify-between border-t border-border pt-4">
-        <label className="flex items-center gap-2 font-body text-sm text-text-primary">
-          <input
-            type="checkbox"
-            className="size-4"
-            checked={cart.giftWrap}
-            disabled={busy}
-            onChange={(event) => {
-              run(cartApi.setGiftWrap(event.target.checked));
-            }}
-          />
-          Gift wrap
-        </label>
-        <span className="font-body text-lg font-bold text-text-primary">
-          {formatMoney(cart.subtotalMinor, moneyFormat)}
-        </span>
-      </div>
+      <Card className="flex flex-col gap-4 bg-surface-elevated p-5">
+        {commerce.giftWrapFeeMinor > 0 && (
+          <label className="flex items-center justify-between gap-2 font-body text-sm text-text-primary">
+            <span className="flex items-center gap-2">
+              <input
+                type="checkbox"
+                className="size-4"
+                checked={cart.giftWrap}
+                disabled={busy}
+                onChange={(event) => {
+                  run(cartApi.setGiftWrap(event.target.checked));
+                }}
+              />
+              Gift wrap
+            </span>
+            <span className="text-text-muted">
+              +{formatMoney(commerce.giftWrapFeeMinor, moneyFormat)}
+            </span>
+          </label>
+        )}
 
-      {error !== null ? (
-        <p role="alert" className="font-body text-sm text-danger">
-          {error}
-        </p>
-      ) : null}
+        <div className="flex items-center justify-between border-t border-border pt-4">
+          <span className="font-body text-text-secondary">Subtotal</span>
+          <span className="font-display text-2xl text-text-primary">
+            {formatMoney(cart.subtotalMinor, moneyFormat)}
+          </span>
+        </div>
 
-      <div className="flex justify-end">
-        <ButtonLink href="/checkout">Checkout</ButtonLink>
-      </div>
+        {error !== null ? (
+          <p role="alert" className="font-body text-sm text-danger">
+            {error}
+          </p>
+        ) : null}
+
+        <ButtonLink href="/checkout" fullWidth size="lg">
+          Checkout
+        </ButtonLink>
+      </Card>
     </section>
   );
 }

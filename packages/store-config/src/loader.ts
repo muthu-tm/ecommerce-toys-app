@@ -112,8 +112,14 @@ export function validateStoreConfig(
     );
   }
 
-  // Contrast is a release gate. A rebrand cannot ship a palette that fails WCAG AA.
+  // Contrast is a release gate. A rebrand cannot ship a palette that fails WCAG AA —
+  // and when a store ships both a light and a dark palette, both are gated independently,
+  // so a light theme can no more ship an unreadable pair than a dark one can.
   assertContrast(storeId, config.theme.colors);
+  if (config.theme.modes !== undefined) {
+    assertContrast(`${storeId} (light)`, config.theme.modes.light);
+    assertContrast(`${storeId} (dark)`, config.theme.modes.dark);
+  }
 
   if (options.checkAssets !== false) {
     assertAssetsExist(storeId, config);

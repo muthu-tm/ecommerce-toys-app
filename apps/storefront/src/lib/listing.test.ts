@@ -1,14 +1,13 @@
 import { describe, expect, it } from 'vitest';
 
-import { parseListingParams, preservedParams } from './listing';
+import { mergeListingQuery, parseListingParams, preservedParams } from './listing';
 
 /**
  * Parsing `searchParams` into a `ProductQuery`.
  *
  * The property that matters: a **malformed** param falls back to the default rather than
  * being passed through to fail schema validation, so a bookmarked `?sort=nonsense` renders
- * the default listing instead of a 400 the customer cannot fix. A **well-formed but
- * unservable** combination still reaches the adapter and is refused there, as it should be.
+ * the default listing instead of a 400 the customer cannot fix.
  */
 
 describe('parseListingParams', () => {
@@ -21,8 +20,6 @@ describe('parseListingParams', () => {
   });
 
   it('falls back to newest for an unknown sort rather than erroring', () => {
-    // The bookmarked-junk case. The schema is still the final authority; this only keeps a
-    // malformed value from becoming a 400.
     expect(parseListingParams({ sort: 'nonsense' }).sort).toBe('newest');
   });
 
@@ -45,7 +42,6 @@ describe('parseListingParams', () => {
   });
 
   it('ignores a non-integer price bound', () => {
-    // A junk price param should not produce a filter that then fails validation.
     const parsed = parseListingParams({ minPrice: 'lots' });
 
     expect(parsed.query.price).toBeUndefined();
@@ -57,6 +53,50 @@ describe('parseListingParams', () => {
 
   it('carries a cursor through untouched', () => {
     expect(parseListingParams({ cursor: 'ABC' }).query.cursor).toBe('ABC');
+  });
+
+  it('parses extra category and age filters from the query string', () => {
+    const parsed = parseListingParams({ c: ['wooden', 'puzzles'], age: '6-8' });
+
+    expect(parsed.categorySlugs).toEqual(['wooden', 'puzzles']);
+    expect(parsed.ageBands).toEqual(['6-8']);
+    expect(parsed.query.categorySlugs).toEqual(['wooden', 'puzzles']);
+  });
+
+  it('accepts a comma-separated category param', () => {
+    expect(parseListingParams({ c: 'wooden,puzzles' }).categorySlugs).toEqual([
+      'wooden',
+      'puzzles',
+    ]);
+  });
+
+  it('drops a junk category slug rather than failing the page', () => {
+    expect(parseListingParams({ c: 'NOT A SLUG' }).categorySlugs).toEqual([]);
+  });
+
+  it('reads a search text query', () => {
+    expect(parseListingParams({ q: ' stack ' }).text).toBe('stack');
+    expect(parseListingParams({ q: '   ' }).text).toBeUndefined();
+  });
+
+  it('falls back from rating sort when a price filter is also present', () => {
+    expect(parseListingParams({ sort: 'rating_desc', minPrice: '50000' }).sort).toBe('newest');
+  });
+});
+
+describe('mergeListingQuery', () => {
+  it('unions route-fixed filters with query-string extras', () => {
+    const parsed = parseListingParams({ c: 'puzzles', age: '3-5' });
+    const query = mergeListingQuery(parsed, { categorySlugs: ['wooden'], ageBands: ['6-8'] });
+
+    expect(query.categorySlugs).toEqual(['wooden', 'puzzles']);
+    expect(query.ageBands).toEqual(['6-8', '3-5']);
+  });
+
+  it('treats an empty fixed category list as no filter', () => {
+    const query = mergeListingQuery(parseListingParams({}), { categorySlugs: [] });
+
+    expect(query.categorySlugs).toBeUndefined();
   });
 });
 
@@ -77,6 +117,17 @@ describe('preservedParams', () => {
     expect(params.get('cursor')).toBeNull();
   });
 
+  it('preserves extra category, age and text filters', () => {
+    const params = preservedParams(
+      parseListingParams({ c: 'wooden', age: '6-8', q: 'ring', inStock: 'true' }),
+    );
+
+    expect(params.get('c')).toBe('wooden');
+    expect(params.get('age')).toBe('6-8');
+    expect(params.get('q')).toBe('ring');
+    expect(params.get('inStock')).toBe('true');
+  });
+
   it('omits the default sort, keeping the first-page URL clean', () => {
     const params = preservedParams(parseListingParams({}));
 
@@ -84,7 +135,6 @@ describe('preservedParams', () => {
   });
 
   it('rebuilds from parsed state, dropping any junk the URL carried', () => {
-    // A param the parser did not recognise does not ride along into the next-page URL.
     const params = preservedParams(parseListingParams({ sort: 'price_asc', junk: 'x' }));
 
     expect(params.has('junk')).toBe(false);

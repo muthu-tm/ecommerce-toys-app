@@ -7,7 +7,7 @@ import {
   uploadBytes,
 } from 'firebase/storage';
 
-import { connectStorageToEmulator, emulatorConfig } from './firebase-emulator';
+import { EMULATOR_API_KEY, connectStorageToEmulator, emulatorConfig } from './firebase-emulator';
 
 /**
  * The client Firebase SDK for the backoffice browser.
@@ -41,7 +41,7 @@ function emulatorWebConfig(): WebConfig {
   const storeId = process.env.NEXT_PUBLIC_STORE_ID ?? 'store';
   const projectId = process.env.NEXT_PUBLIC_FIREBASE_PROJECT_ID ?? `demo-${storeId}`;
   return {
-    apiKey: 'emulator-api-key',
+    apiKey: EMULATOR_API_KEY,
     authDomain: `${projectId}.firebaseapp.com`,
     projectId,
     appId: 'emulator-app-id',

@@ -135,10 +135,13 @@ describe('the build-time fallback', () => {
     globalThis.__ROMP_TEST_SEARCH_PORT = undefined;
     available = false;
 
-    const { getProduct, getNavCategories, getCategory } = await import('./catalogue');
+    const { getProduct, getNavCategories, getFilterCategories, getCategory } = await import(
+      './catalogue'
+    );
 
     expect(await getProduct('a')).toBeNull();
     expect(await getNavCategories()).toEqual([]);
+    expect(await getFilterCategories()).toEqual([]);
     expect(await getCategory('wooden')).toBeNull();
   });
 });

@@ -97,6 +97,8 @@ export function RegisterForm() {
         {...(weak && assessment.suggestions.length > 0 ? { error: assessment.suggestions[0] } : {})}
       />
 
+      {assessment !== null ? <PasswordStrength score={assessment.score} ok={assessment.ok} /> : null}
+
       {error !== null ? (
         <p role="alert" className="font-body text-sm text-danger">
           {error}
@@ -114,5 +116,37 @@ export function RegisterForm() {
         </Link>
       </p>
     </form>
+  );
+}
+
+/**
+ * A four-segment password-strength meter driven by the zxcvbn score `assessPassword` returns.
+ *
+ * The bar is decorative (`aria-hidden`); the meaning is carried by an `aria-live` line so a
+ * screen-reader user hears "Weak" / "Strong" as they type, not a description of coloured
+ * rectangles. Colour alone never conveys the state — the word does. The strength floor is a
+ * score of 3, so 3–4 read as acceptable (success) and 0–2 as not yet (warning).
+ */
+function PasswordStrength({ score, ok }: { readonly score: number; readonly ok: boolean }) {
+  const labels = ['Very weak', 'Weak', 'Fair', 'Good', 'Strong'] as const;
+  const label = labels[Math.min(score, 4)] ?? labels[0];
+  const filled = Math.max(1, Math.min(score + 1, 4));
+
+  return (
+    <div className="flex flex-col gap-1">
+      <div aria-hidden="true" className="flex gap-1">
+        {[0, 1, 2, 3].map((index) => (
+          <span
+            key={index}
+            className={`h-1.5 flex-1 rounded-pill ${
+              index < filled ? (ok ? 'bg-success' : 'bg-warning') : 'bg-surface-alt'
+            }`}
+          />
+        ))}
+      </div>
+      <p aria-live="polite" className="font-body text-xs text-text-muted">
+        Password strength: <span className={ok ? 'text-success' : 'text-warning'}>{label}</span>
+      </p>
+    </div>
   );
 }

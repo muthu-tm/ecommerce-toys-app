@@ -2,7 +2,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 
 import type { ProductSummary } from '@romp/contracts';
-import { Badge, Card } from '@romp/ui';
+import { Badge, Card, InitialTile } from '@romp/ui';
 
 import { formatMoney, mediaUrl, moneyFormat } from '@/lib/store';
 
@@ -47,7 +47,7 @@ export function ProductCard({ product, priority = false, sizes = GRID_SIZES }: P
     <Card interactive className="h-full overflow-hidden">
       <Link
         href={`/p/${product.slug}`}
-        className="flex h-full flex-col focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+        className="group flex h-full flex-col focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
       >
         {/*
           A fixed aspect-ratio box, so the card reserves its space before the image loads
@@ -57,12 +57,7 @@ export function ProductCard({ product, priority = false, sizes = GRID_SIZES }: P
         */}
         <div className="relative aspect-square w-full overflow-hidden bg-surface-alt">
           {image === null ? (
-            <span
-              aria-hidden="true"
-              className="flex h-full w-full items-center justify-center font-display text-2xl text-text-muted"
-            >
-              {product.name.slice(0, 1)}
-            </span>
+            <InitialTile name={product.name} size="md" />
           ) : (
             <Image
               src={image}
@@ -70,7 +65,7 @@ export function ProductCard({ product, priority = false, sizes = GRID_SIZES }: P
               fill
               sizes={sizes}
               priority={priority}
-              className="object-cover"
+              className="object-cover transition-transform duration-(--store-motion-duration) ease-theme group-hover:scale-105 motion-reduce:group-hover:scale-100"
               // A blurred placeholder while the image loads, when the resize Function has
               // produced one. Without it there is a flash of empty surface; with a
               // non-null blurhash Next paints the blur immediately.

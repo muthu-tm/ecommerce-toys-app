@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import axe from 'axe-core';
 import { describe, expect, it } from 'vitest';
@@ -39,11 +39,15 @@ describe('Wordmark', () => {
     expect(screen.getByRole('link', { name: `${brand.name} — home` })).toHaveAttribute('href', '/');
   });
 
-  it('renders the configured artwork from public/brand', () => {
+  it('renders both theme variants of the artwork from public/brand', () => {
     render(<Wordmark />);
 
-    const image = screen.getByAltText(brand.name);
-    expect(image.getAttribute('src')).toContain('logo-dark.svg');
+    // Both the dark-surface and light-surface wordmarks are rendered; CSS shows the one
+    // matching the active theme (`.theme-dark-only` / `.theme-light-only`), so the ink always
+    // matches the surface. Both carry the store name as alt.
+    const sources = screen.getAllByAltText(brand.name).map((image) => image.getAttribute('src'));
+    expect(sources.some((src) => src?.includes('logo-dark.svg'))).toBe(true);
+    expect(sources.some((src) => src?.includes('logo-light.svg'))).toBe(true);
   });
 
   it('uses the square mark when compact', () => {
@@ -60,27 +64,22 @@ describe('SiteHeader', () => {
     await expectNoAxeViolations(container);
   });
 
-  it('builds its nav from categories flagged showInNav, in configured order', () => {
+  it('builds its nav from Shop by age and All toys, not from categories', () => {
     render(<SiteHeader />);
 
-    const expected = content.categories
-      .filter((category) => category.showInNav)
-      .sort((left, right) => left.sortOrder - right.sortOrder)
-      .map((category) => category.name);
-
-    const nav = screen.getByRole('navigation', { name: 'Categories' });
+    const nav = screen.getByRole('navigation', { name: 'Shop' });
     const links = [...nav.querySelectorAll('a')].map((link) => link.textContent);
 
-    expect(links).toEqual(expected);
-    expect(expected.length).toBeGreaterThan(0);
+    expect(links).toEqual(['Shop by age', 'All toys']);
+    expect(nav.querySelector('a[href="/#shop-by-age"]')).not.toBeNull();
+    expect(nav.querySelector('a[href="/c/all"]')).not.toBeNull();
   });
 
-  it('excludes categories not flagged for the nav', () => {
+  it('does not put catalogue categories in the header', () => {
     render(<SiteHeader />);
-    const hidden = content.categories.filter((category) => !category.showInNav);
-    const nav = screen.getByRole('navigation', { name: 'Categories' });
+    const nav = screen.getByRole('navigation', { name: 'Shop' });
 
-    for (const category of hidden) {
+    for (const category of content.categories) {
       expect(nav.querySelector(`a[href="/c/${category.slug}"]`)).toBeNull();
     }
   });
@@ -118,7 +117,7 @@ describe('SiteHeader', () => {
 });
 
 describe('MobileNav', () => {
-  it('opens a labelled dialog listing categories and age bands', async () => {
+  it('opens a labelled dialog listing shop links and age bands', async () => {
     render(<SiteHeader />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Menu' }));
@@ -127,7 +126,15 @@ describe('MobileNav', () => {
     expect(dialog).toHaveAccessibleName('Browse');
     expect(screen.getByRole('navigation', { name: 'Browse' })).toBeInTheDocument();
 
-    // Age bands come from config, so changing them changes the menu.
+    expect(within(dialog).getByRole('link', { name: 'Shop by age' })).toHaveAttribute(
+      'href',
+      '/#shop-by-age',
+    );
+    expect(within(dialog).getByRole('link', { name: 'All toys' })).toHaveAttribute(
+      'href',
+      '/c/all',
+    );
+
     for (const band of content.ageBands) {
       expect(screen.getByRole('link', { name: band.label })).toHaveAttribute(
         'href',

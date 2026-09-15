@@ -1,6 +1,7 @@
 import Link from 'next/link';
 
 import type { ProductSummary } from '@romp/contracts';
+import { Section } from '@romp/ui';
 
 import { ProductCard } from './ProductCard';
 
@@ -29,22 +30,29 @@ const RAIL_SIZES = '280px';
 export function ProductRail({ title, products, seeAllHref, headingId }: ProductRailProps) {
   if (products.length === 0) return null;
 
-  return (
-    <section aria-labelledby={headingId} className="flex flex-col gap-4">
-      <div className="flex items-baseline justify-between gap-4">
-        <h2 id={headingId} className="font-display text-2xl text-text-primary">
-          {title}
-        </h2>
-        {seeAllHref !== undefined && (
-          <Link
-            href={seeAllHref}
-            className="font-body text-sm text-accent underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
-          >
-            See all
-          </Link>
-        )}
-      </div>
+  const action =
+    seeAllHref === undefined ? undefined : (
+      <Link
+        href={seeAllHref}
+        className="inline-flex items-center gap-1 font-body text-sm font-semibold text-accent hover:underline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus-ring"
+      >
+        See all
+        <svg viewBox="0 0 20 20" className="size-4" aria-hidden="true" fill="none">
+          <path
+            d="M7 4l6 6-6 6"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </Link>
+    );
 
+  return (
+    // The heading id is preserved so the section's labelling contract is unchanged; Section
+    // owns the header row, and the "See all" affordance sits in its action slot.
+    <Section title={<span id={headingId}>{title}</span>} action={action} aria-labelledby={headingId}>
       {/*
         A scroll-snapping row. `overflow-x-auto` with fixed-width children is the rail;
         on a wide screen the children simply do not overflow and it reads as a grid row.
@@ -57,6 +65,6 @@ export function ProductRail({ title, products, seeAllHref, headingId }: ProductR
           </li>
         ))}
       </ul>
-    </section>
+    </Section>
   );
 }
